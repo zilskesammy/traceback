@@ -1,0 +1,240 @@
+// prisma/schema.prisma — vollständiges Datenbank-Schema für Traceback
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+// ─── NEXTAUTH ────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── USER ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  githubId      String?   @unique
+  githubLogin   String?
+
+  accounts    Account[]
+  sessions    Session[]
+  memberships ProjectMember[]
+  apiKeys     ApiKey[]
+  invitations ProjectInvitation[] @relation("InvitedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─── PROJECT ─────────────────────────────────────────────────────────────────
+
+model Project {
+  id                   String  @id @default(cuid())
+  name                 String
+  description          String?
+  repoUrl              String
+  repoOwner            String
+  repoName             String
+  githubInstallationId String?
+  webhookSecret        String
+  defaultBranch        String  @default("main")
+
+  members     ProjectMember[]
+  invitations ProjectInvitation[]
+  epics       Epic[]
+  commits     Commit[]
+  apiKeys     ApiKey[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProjectMember {
+  id        String      @id @default(cuid())
+  projectId String
+  userId    String
+  role      ProjectRole @default(MEMBER)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+enum ProjectRole {
+  OWNER
+  MEMBER
+}
+
+model ProjectInvitation {
+  id          String           @id @default(cuid())
+  projectId   String
+  invitedById String
+  email       String?
+  token       String           @unique @default(cuid())
+  role        ProjectRole      @default(MEMBER)
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedBy User    @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+// ─── TICKET HIERARCHY ────────────────────────────────────────────────────────
+
+model Epic {
+  id          String       @id @default(cuid())
+  projectId   String
+  title       String
+  description String?      @db.Text
+  status      TicketStatus @default(BACKLOG)
+  order       Int          @default(0)
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  features Feature[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Feature {
+  id                 String       @id @default(cuid())
+  epicId             String
+  title              String
+  description        String?      @db.Text
+  status             TicketStatus @default(BACKLOG)
+  assignee           String?
+  acceptanceCriteria Json?
+  contextFiles       Json?
+  changedFiles       Json?
+  diffRef            String?
+  diffSummary        String?      @db.Text
+  changedBy          String?
+  changedAt          DateTime?
+  order              Int          @default(0)
+
+  epic  Epic   @relation(fields: [epicId], references: [id], onDelete: Cascade)
+  tasks Task[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id           String       @id @default(cuid())
+  featureId    String
+  title        String
+  instruction  String?      @db.Text
+  assignee     String?
+  status       TicketStatus @default(BACKLOG)
+  contextFiles Json?
+  changedFiles Json?
+  diffRef      String?
+  changedBy    String?
+  changedAt    DateTime?
+  order        Int          @default(0)
+
+  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum TicketStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+// ─── GIT ─────────────────────────────────────────────────────────────────────
+
+model Commit {
+  id           String   @id @default(cuid())
+  projectId    String
+  sha          String
+  message      String   @db.Text
+  author       String
+  pushedAt     DateTime
+  branch       String
+  filesChanged Json
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, sha])
+}
+
+// ─── API KEYS ────────────────────────────────────────────────────────────────
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  projectId  String
+  keyHash    String    @unique
+  keyPrefix  String
+  label      String
+  lastUsedAt DateTime?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
