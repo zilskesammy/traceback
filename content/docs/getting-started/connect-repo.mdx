@@ -1,0 +1,51 @@
+---
+title: Repository verbinden
+description: GitHub Repository mit Traceback verknüpfen und Webhook einrichten.
+order: 2
+section: getting-started
+---
+
+## Repository auswählen
+
+Beim Anlegen eines neuen Projekts zeigt Traceback alle deine GitHub Repositories an. Die Liste enthält:
+
+- **Public und private** Repositories
+- Sortiert nach **letzter Aktivität**
+- Sprache und Default-Branch als Zusatzinfo
+
+Wähle das gewünschte Repository — Name und Beschreibung werden automatisch übernommen.
+
+## Was passiert beim Anlegen?
+
+Traceback speichert:
+- Repository-Owner und Name (für GitHub API Aufrufe)
+- Default Branch
+- Einen zufällig generierten **Webhook Secret** (für spätere Webhook-Verifikation)
+
+<Callout type="info">
+Die eigentliche Webhook-Registrierung auf GitHub erfolgt in einem separaten Schritt in den Projekteinstellungen — dafür wird eine GitHub App Installation benötigt.
+</Callout>
+
+## Webhook manuell einrichten
+
+Falls du den Webhook manuell einrichten möchtest:
+
+1. Gehe zu deinem GitHub Repository → **Settings** → **Webhooks** → **Add webhook**
+2. **Payload URL:** `https://traceback-hazel.vercel.app/api/webhook/github`
+3. **Content type:** `application/json`
+4. **Secret:** Den Webhook Secret aus den Traceback Projekteinstellungen
+5. **Events:** Wähle `push`, `pull_request`, `pull_request_review`
+
+```
+Payload URL:   https://traceback-hazel.vercel.app/api/webhook/github
+Content type:  application/json
+Events:        push, pull_request, pull_request_review
+```
+
+<Callout type="warning">
+Der Webhook Secret muss exakt mit dem Wert in den Traceback Projekteinstellungen übereinstimmen — sonst werden Webhook-Events abgelehnt.
+</Callout>
+
+## Verbindung testen
+
+Nach dem Einrichten des Webhooks kannst du einen Test-Push machen. Traceback protokolliert jeden eingehenden Push-Event und zeigt geänderte Dateien im Planning Board an.

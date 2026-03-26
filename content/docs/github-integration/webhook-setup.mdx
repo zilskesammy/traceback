@@ -1,0 +1,90 @@
+---
+title: Webhook Setup
+description: GitHub Webhook für automatisches Diff-Tracking einrichten.
+order: 1
+section: github-integration
+---
+
+## Was macht der Webhook?
+
+Wenn du Code auf GitHub pushst, sendet GitHub einen Push-Event an Traceback. Traceback:
+
+1. Verifiziert die Signatur (HMAC SHA-256)
+2. Extrahiert alle geänderten Dateien aus dem Commit
+3. Vergleicht sie mit den `contextFiles` aller Tickets
+4. Schreibt bei einem Match `diffRef` (Commit-SHA) und `changedFiles` in das Ticket
+5. Setzt den Status ggf. automatisch auf `IN_PROGRESS`
+
+Das passiert innerhalb von Millisekunden — ohne dass der Entwickler etwas machen muss.
+
+## Webhook manuell einrichten
+
+### Schritt 1: Webhook Secret kopieren
+
+Gehe in deinem Traceback-Projekt zu **Einstellungen** → den Webhook Secret kopieren.
+
+### Schritt 2: Webhook auf GitHub anlegen
+
+Gehe zu deinem GitHub Repository:
+
+```
+Settings → Webhooks → Add webhook
+```
+
+Fülle die Felder aus:
+
+| Feld | Wert |
+|------|------|
+| **Payload URL** | `https://traceback-hazel.vercel.app/api/webhook/github` |
+| **Content type** | `application/json` |
+| **Secret** | Dein Webhook Secret aus Traceback |
+| **SSL verification** | Enable |
+| **Events** | `push`, `pull_request`, `pull_request_review` |
+
+### Schritt 3: Verbindung testen
+
+Klicke auf **"Recent Deliveries"** in den Webhook-Einstellungen. Nach dem nächsten Push sollte ein grüner Haken erscheinen.
+
+<Callout type="warning">
+Der Webhook Secret muss exakt übereinstimmen. Traceback lehnt Events mit falscher oder fehlender Signatur mit `401` ab.
+</Callout>
+
+## Wie funktioniert das Matching?
+
+Traceback vergleicht die geänderten Dateien eines Commits mit den `contextFiles` aller Tickets des Projekts.
+
+**Matching-Regeln (Priorität):**
+
+1. **Exakter Match** — `src/lib/auth.ts` ∈ `contextFiles`
+2. **Verzeichnis-Präfix** — `contextFiles` enthält `src/lib/` und `src/lib/auth.ts` wurde geändert
+3. **Glob-Pattern** — `contextFiles` enthält `src/**/*.ts`
+
+**Beispiel:**
+
+```yaml
+# Task contextFiles:
+contextFiles:
+  - src/lib/auth.ts
+  - src/app/api/auth/
+
+# Push ändert:
+# - src/lib/auth.ts        ← Exakter Match ✅
+# - src/app/api/auth/route.ts  ← Präfix Match ✅
+# - src/components/Button.tsx  ← Kein Match ❌
+```
+
+## Automatische Status-Progression
+
+Wenn Traceback einen Match findet und der Task-Status `TODO` ist, wird er automatisch auf `IN_PROGRESS` gesetzt. Andere Status-Werte werden nicht verändert.
+
+<Callout type="tip">
+Diese Automatik lässt sich nutzen um zu sehen ob ein Agent bereits begonnen hat an einem Task zu arbeiten — auch ohne dass der Agent selbst seinen Status aktualisiert.
+</Callout>
+
+## Unterstützte Events
+
+| Event | Was passiert |
+|-------|-------------|
+| `push` | Geänderte Dateien werden extrahiert und gematcht |
+| `pull_request` | Wird protokolliert (zukünftig: PR-Status in Tickets) |
+| `pull_request_review` | Wird protokolliert (zukünftig: Review-Status) |

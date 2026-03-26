@@ -1,0 +1,106 @@
+---
+title: Tickets lesen
+description: Alle Tickets eines Projekts oder einen einzelnen Task als YAML abrufen.
+order: 2
+section: agent-api
+---
+
+## Alle Tickets als YAML
+
+Gibt die komplette Ticket-Hierarchie eines Projekts zurück — ideal als Kontext-Prompt für einen KI-Agenten.
+
+```
+GET /api/projects/{projectId}/tickets
+```
+
+**Request:**
+
+```bash
+curl https://traceback-hazel.vercel.app/api/projects/proj_abc123/tickets \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx"
+```
+
+**Response (YAML):**
+
+```yaml
+project: Mein Projekt
+epics:
+  - id: epic_1
+    title: Authentifizierung
+    status: IN_PROGRESS
+    features:
+      - id: feat_1
+        title: GitHub OAuth Login
+        status: IN_PROGRESS
+        assignee: claude-opus
+        contextFiles:
+          - src/lib/auth.ts
+          - src/app/api/auth/route.ts
+        changedFiles:
+          - src/lib/auth.ts
+        diffRef: "a3f8c2d"
+        tasks:
+          - id: task_1
+            title: NextAuth Konfiguration
+            status: DONE
+            assignee: claude-opus
+            diffRef: "a3f8c2d"
+          - id: task_2
+            title: Session Callback erweitern
+            status: TODO
+            assignee: human
+```
+
+## Einzelnen Task lesen
+
+Gibt einen einzelnen Task zurück — mit vollem Kontext für fokussierte Agenten-Arbeit.
+
+```
+GET /api/tasks/{taskId}
+```
+
+**Request:**
+
+```bash
+curl https://traceback-hazel.vercel.app/api/tasks/task_xyz \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx"
+```
+
+**Response (YAML):**
+
+```yaml
+id: task_xyz
+title: Session Callback erweitern
+instruction: |
+  Erweitere den session() Callback in lib/auth.ts
+  um githubId und githubLogin in die Session zu schreiben.
+status: TODO
+assignee: claude-opus
+contextFiles:
+  - src/lib/auth.ts
+  - src/types/next-auth.d.ts
+changedFiles: []
+diffRef: null
+feature:
+  id: feat_1
+  title: GitHub OAuth Login
+epic:
+  id: epic_1
+  title: Authentifizierung
+```
+
+## Einzelnes Feature lesen
+
+```
+GET /api/projects/{projectId}/epics/{epicId}/features/{featureId}
+```
+
+<Callout type="tip">
+Für Agenten die an einem bestimmten Feature arbeiten, ist dieser Endpunkt ideal — er gibt exakt den nötigen Kontext zurück ohne unnötige Daten.
+</Callout>
+
+## Content-Type
+
+Alle `GET`-Requests auf `/api/projects/{id}/tickets` und `/api/tasks/{id}` geben immer `text/yaml` zurück.
+
+Alle anderen Endpunkte geben `application/json` zurück und akzeptieren optional den Header `Accept: application/yaml` für YAML-Response.

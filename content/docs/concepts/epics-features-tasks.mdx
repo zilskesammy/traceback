@@ -1,0 +1,97 @@
+---
+title: Epics, Features & Tasks
+description: Die drei Ebenen der Ticket-Hierarchie in Traceback.
+order: 1
+section: concepts
+---
+
+## Die Hierarchie
+
+Traceback verwendet eine dreistufige Hierarchie:
+
+```
+Epic
+└── Feature
+    └── Task
+```
+
+Jede Ebene hat einen eigenen Scope und Zweck.
+
+## Epic
+
+Ein Epic ist die **höchste Planungsebene** — eine große Themenwelt oder ein Meilenstein.
+
+**Beispiele:**
+- `Authentifizierung & Benutzer`
+- `Payment Integration`
+- `Performance Optimierung`
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `title` | String | Name des Epics |
+| `description` | String | Ausführliche Beschreibung |
+| `status` | Enum | `BACKLOG` `TODO` `IN_PROGRESS` `IN_REVIEW` `DONE` `CANCELLED` |
+| `order` | Int | Reihenfolge in der Sidebar |
+
+## Feature
+
+Ein Feature ist eine **konkrete Funktion** innerhalb eines Epics.
+
+**Beispiele:**
+- `GitHub OAuth Login`
+- `Session Management`
+- `Passwort zurücksetzen`
+
+Features haben zusätzliche Tracking-Felder:
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `assignee` | String | `"human"` oder ein Agenten-Name z.B. `"claude-opus"` |
+| `contextFiles` | String[] | Dateipfade die zu diesem Feature gehören |
+| `changedFiles` | String[] | Dateien die durch den letzten Commit geändert wurden |
+| `diffRef` | String | Commit-SHA des letzten relevanten Commits |
+| `diffSummary` | String | Automatische Zusammenfassung der Änderungen |
+| `acceptanceCriteria` | JSON | Liste von Abnahmekriterien |
+
+## Task
+
+Ein Task ist die **kleinste Arbeitseinheit** — eine einzelne, klar abgrenzbare Aufgabe.
+
+**Beispiele:**
+- `GitHub OAuth Route implementieren`
+- `Session-Cookie setzen`
+- `Redirect nach Login`
+
+<Callout type="tip">
+Tasks sind die primäre Arbeitseinheit für KI-Agenten. Ein Agent bekommt einen Task als Kontext, liest die `contextFiles`, schreibt Code und schreibt dann `diffRef` und `changedFiles` zurück.
+</Callout>
+
+## Status-Werte
+
+Alle drei Ebenen verwenden denselben Status-Enum:
+
+| Status | Farbe | Bedeutung |
+|--------|-------|----------|
+| `BACKLOG` | Grau | Noch nicht geplant |
+| `TODO` | Blau | Bereit zur Bearbeitung |
+| `IN_PROGRESS` | Gelb | Wird gerade bearbeitet |
+| `IN_REVIEW` | Lila | In Code-Review |
+| `DONE` | Grün | Abgeschlossen |
+| `CANCELLED` | Rot | Abgebrochen |
+
+## contextFiles vs. changedFiles
+
+Diese beiden Felder werden häufig verwechselt:
+
+**`contextFiles`** — vom Menschen oder Agenten manuell gesetzt. Definiert welche Dateien *relevant* für dieses Ticket sind. Wird für das automatische Webhook-Matching verwendet.
+
+**`changedFiles`** — automatisch gesetzt von Traceback. Enthält die Dateien die tatsächlich geändert wurden, wenn der Webhook einen Push mit überlappenden Dateien erkennt.
+
+```yaml
+contextFiles:
+  - src/lib/auth.ts
+  - src/app/api/auth/route.ts
+
+changedFiles:
+  - src/lib/auth.ts   # ← wurde im letzten Push geändert
+```

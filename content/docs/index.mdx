@@ -1,0 +1,44 @@
+---
+title: Willkommen bei Traceback
+description: Planning- und Code-Tracking-Tool für Projekte die von KI-Agenten und Menschen gemeinsam entwickelt werden.
+order: 0
+---
+
+Traceback ist ein Planning-Tool das speziell für die Zusammenarbeit zwischen **Menschen und KI-Agenten** entwickelt wurde. Es verbindet dein GitHub Repository mit einer strukturierten Ticket-Hierarchie und ermöglicht es Agenten, Tickets zu lesen, zu schreiben und Code-Änderungen automatisch zuzuordnen.
+
+## Was ist Traceback?
+
+Traceback löst ein spezifisches Problem: Wenn KI-Agenten Code schreiben, weiß das Team oft nicht was gerade bearbeitet wird, was bereits fertig ist, und welcher Commit zu welchem Ticket gehört.
+
+Traceback gibt jedem Ticket einen eindeutigen Kontext — welche Dateien gehören dazu, welcher Commit hat sie geändert, wer hat sie zuletzt angefasst.
+
+## Kernkonzepte
+
+| Konzept | Beschreibung |
+|---------|-------------|
+| **Epic** | Eine große Themenwelt (z.B. "Authentifizierung") |
+| **Feature** | Eine konkrete Funktion innerhalb eines Epics |
+| **Task** | Eine einzelne Aufgabe innerhalb eines Features |
+| **diffRef** | Der Commit-SHA der die Dateien dieses Tickets zuletzt geändert hat |
+| **contextFiles** | Dateipfade die zu diesem Ticket gehören |
+
+## Schnellstart
+
+<Callout type="tip">
+Du brauchst nur einen GitHub-Account. Kein Setup, keine Konfiguration — einfach einloggen und loslegen.
+</Callout>
+
+1. [Mit GitHub anmelden](/login)
+2. [Neues Projekt anlegen](/projects/new) — wähle ein Repository aus
+3. Epics, Features und Tasks anlegen
+4. Optional: [GitHub Webhook einrichten](/docs/github-integration/webhook-setup) für automatisches Diff-Tracking
+
+## Für KI-Agenten
+
+Traceback hat eine vollständige [Agent API](/docs/agent-api/authentication) — Agenten können Tickets lesen, erstellen, bearbeiten und Status-Updates schreiben. Alle Endpunkte sind per API-Key gesichert.
+
+```bash
+# Alle Tickets eines Projekts als YAML laden
+curl https://traceback-hazel.vercel.app/api/projects/{id}/tickets \
+  -H "Authorization: Bearer tb_..."
+```

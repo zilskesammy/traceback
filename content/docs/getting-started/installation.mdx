@@ -1,0 +1,55 @@
+---
+title: Erste Schritte
+description: In 3 Minuten von Null zum ersten Projekt.
+order: 1
+section: getting-started
+---
+
+## 1. Mit GitHub anmelden
+
+Traceback nutzt GitHub OAuth für die Authentifizierung. Du brauchst keinen separaten Account.
+
+Gehe auf [traceback-hazel.vercel.app](https://traceback-hazel.vercel.app) und klicke auf **"Mit GitHub anmelden"**.
+
+<Callout type="info">
+Traceback benötigt nur `read:user` und `user:email` Berechtigungen für den Login. Zugriff auf deine Repositories wird separat über die GitHub App geregelt.
+</Callout>
+
+## 2. Erstes Projekt anlegen
+
+Nach dem Login landest du auf dem **Dashboard**. Klicke auf **"Neues Projekt"**.
+
+Du siehst eine Liste aller deiner GitHub Repositories — sortiert nach letzter Aktivität. Wähle das Repository das du mit Traceback verwalten möchtest.
+
+Traceback füllt automatisch aus:
+- **Projektname** — aus dem Repository-Namen
+- **Beschreibung** — aus der GitHub Repository-Beschreibung
+- **Default Branch** — aus den Repository-Einstellungen
+
+Klicke **"Projekt anlegen"** — du wirst direkt zum Planning Board weitergeleitet.
+
+## 3. Planning Board
+
+Das Planning Board besteht aus zwei Bereichen:
+
+- **Linke Sidebar** — Liste aller Epics mit Status-Farben
+- **Hauptbereich** — Features und Tasks des ausgewählten Epics
+
+### Human View vs. Machine View
+
+Oben rechts gibt es einen Toggle zwischen zwei Ansichten:
+
+| View | Beschreibung |
+|------|-------------|
+| **Human** | Karten mit Status, Assignee, Diff-Links |
+| **Machine** | YAML-Darstellung — direkt für KI-Agenten lesbar |
+
+<Callout type="tip">
+Machine View zeigt exakt das gleiche Format das die Agent API zurückgibt. Ideal um zu prüfen was ein Agent sieht.
+</Callout>
+
+## 4. Nächste Schritte
+
+- [GitHub Webhook einrichten](/docs/github-integration/webhook-setup) — für automatisches Diff-Tracking bei jedem Push
+- [Epics und Tasks anlegen](/docs/concepts/epics-features-tasks) — Ticket-Hierarchie verstehen
+- [Agent API nutzen](/docs/agent-api/authentication) — KI-Agenten einbinden

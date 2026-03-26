@@ -1,0 +1,145 @@
+---
+title: Tickets schreiben
+description: Epics, Features und Tasks per API erstellen und aktualisieren.
+order: 3
+section: agent-api
+---
+
+## Epic erstellen
+
+```
+POST /api/projects/{projectId}/epics
+```
+
+```bash
+curl -X POST https://traceback-hazel.vercel.app/api/projects/proj_abc/epics \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Authentifizierung",
+    "description": "GitHub OAuth, Session Management, Berechtigungen",
+    "status": "IN_PROGRESS",
+    "order": 1
+  }'
+```
+
+## Feature erstellen
+
+```
+POST /api/projects/{projectId}/epics/{epicId}/features
+```
+
+```bash
+curl -X POST https://traceback-hazel.vercel.app/api/projects/proj_abc/epics/epic_1/features \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "GitHub OAuth Login",
+    "description": "NextAuth v5 mit GitHub Provider",
+    "status": "IN_PROGRESS",
+    "assignee": "claude-opus",
+    "contextFiles": ["src/lib/auth.ts", "src/app/api/auth/route.ts"],
+    "acceptanceCriteria": [
+      "User kann sich mit GitHub einloggen",
+      "Session enthält userId und githubLogin",
+      "Logout funktioniert"
+    ]
+  }'
+```
+
+## Task erstellen
+
+```
+POST /api/projects/{projectId}/epics/{epicId}/features/{featureId}/tasks
+```
+
+```bash
+curl -X POST .../features/feat_1/tasks \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "NextAuth Konfiguration",
+    "instruction": "Erstelle lib/auth.ts mit NextAuth v5, GitHub Provider und PrismaAdapter",
+    "assignee": "claude-opus",
+    "status": "TODO",
+    "contextFiles": ["src/lib/auth.ts", "src/lib/db.ts"]
+  }'
+```
+
+## Task-Status nach Code-Änderung aktualisieren
+
+Wenn ein Agent einen Task abgeschlossen hat, schreibt er Status und diffRef zurück:
+
+```
+PATCH /api/projects/{projectId}/epics/{epicId}/features/{featureId}/tasks/{taskId}
+```
+
+```bash
+curl -X PATCH .../tasks/task_1 \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "DONE",
+    "diffRef": "a3f8c2d9e1b4c7f2",
+    "changedFiles": ["src/lib/auth.ts"],
+    "changedBy": "claude-opus"
+  }'
+```
+
+## Felder beim PATCH
+
+Alle Felder sind optional — nur gesendete Felder werden aktualisiert:
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `title` | String | Neuer Titel |
+| `status` | Enum | Neuer Status |
+| `assignee` | String | Wer es bearbeitet |
+| `diffRef` | String | Commit-SHA |
+| `changedFiles` | String[] | Geänderte Dateien |
+| `changedBy` | String | Name des Autors |
+| `instruction` | String | Aufgabenbeschreibung (nur Tasks) |
+| `contextFiles` | String[] | Relevante Dateipfade |
+
+<Callout type="info">
+`changedAt` wird automatisch gesetzt wenn `diffRef` oder `changedFiles` im PATCH enthalten sind.
+</Callout>
+
+## Vollständiger Agent-Workflow
+
+```python
+import httpx
+import yaml
+
+BASE = "https://traceback-hazel.vercel.app"
+TOKEN = "tb_xxxxxxxxxxxxxxxxxxxx"
+PROJECT = "proj_abc123"
+
+headers = {"Authorization": f"Bearer {TOKEN}"}
+
+# 1. Kontext laden
+r = httpx.get(f"{BASE}/api/projects/{PROJECT}/tickets", headers=headers)
+context = yaml.safe_load(r.text)
+
+# 2. Nächsten TODO Task finden
+task = next(
+    t for epic in context["epics"]
+    for feat in epic["features"]
+    for t in feat["tasks"]
+    if t["status"] == "TODO" and t.get("assignee") == "claude-opus"
+)
+
+# 3. ... Code schreiben ...
+
+# 4. Task als DONE markieren
+httpx.patch(
+    f"{BASE}/api/projects/{PROJECT}/epics/{task['epicId']}/features/{task['featureId']}/tasks/{task['id']}",
+    headers=headers,
+    json={
+        "status": "DONE",
+        "diffRef": "abc123def456",
+        "changedFiles": task["contextFiles"],
+        "changedBy": "claude-opus"
+    }
+)
+```

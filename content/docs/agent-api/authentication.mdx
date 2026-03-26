@@ -1,0 +1,64 @@
+---
+title: API Authentifizierung
+description: API-Keys erstellen und in Agenten-Anfragen verwenden.
+order: 1
+section: agent-api
+---
+
+## Überblick
+
+Die Traceback Agent API ist per **API-Key** gesichert. API-Keys werden pro Projekt erstellt und geben einem Agenten vollen CRUD-Zugriff auf die Ticket-Hierarchie dieses Projekts.
+
+<Callout type="warning">
+API-Keys werden nur einmal angezeigt — direkt nach der Erstellung. Speichere den Key sofort in deiner Agenten-Konfiguration oder einem Secret Manager.
+</Callout>
+
+## API-Key erstellen
+
+1. Gehe zu deinem Projekt → **Einstellungen** → **API-Keys**
+2. Klicke **"Neuen Key erstellen"**
+3. Gib einen Label ein (z.B. `"claude-agent"` oder `"ci-pipeline"`)
+4. Kopiere den Key — er beginnt immer mit `tb_`
+
+## Key im Request verwenden
+
+Alle API-Anfragen müssen den Key im `Authorization` Header mitschicken:
+
+```bash
+Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx
+```
+
+**Beispiel:**
+
+```bash
+curl https://traceback-hazel.vercel.app/api/projects/proj_123/tickets \
+  -H "Authorization: Bearer tb_xxxxxxxxxxxxxxxxxxxx" \
+  -H "Content-Type: application/json"
+```
+
+## Key-Format
+
+```
+tb_{32 zufällige Zeichen}
+```
+
+Der Key wird als Hash in der Datenbank gespeichert — Traceback kann den Klartext nach der Erstellung nicht mehr anzeigen.
+
+## Berechtigungen
+
+| Operation | Berechtigung |
+|-----------|-------------|
+| Tickets lesen (GET) | ✅ Alle Keys |
+| Tickets erstellen (POST) | ✅ Alle Keys |
+| Tickets bearbeiten (PATCH) | ✅ Alle Keys |
+| Tickets löschen (DELETE) | ✅ Alle Keys |
+| Projekt löschen | ❌ Nur Session (Owner) |
+| API-Keys verwalten | ❌ Nur Session (Owner) |
+
+<Callout type="info">
+API-Keys haben Zugriff nur auf das Projekt für das sie erstellt wurden — nicht auf andere Projekte des gleichen Accounts.
+</Callout>
+
+## Key widerrufen
+
+Gehe zu **Einstellungen** → **API-Keys** → Klicke das Papierkorb-Symbol neben dem Key. Der Key wird sofort ungültig.
