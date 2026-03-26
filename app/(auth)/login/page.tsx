@@ -21,6 +21,9 @@ export default async function LoginPage({
     OAuthCallback: "Fehler beim GitHub Callback.",
     OAuthAccountNotLinked:
       "Diese E-Mail ist bereits mit einem anderen Account verknüpft.",
+    Configuration: "Server-Konfigurationsfehler. Bitte Administrator kontaktieren.",
+    AccessDenied: "Zugriff verweigert.",
+    Verification: "Token abgelaufen oder ungültig.",
     default: "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
   };
 
@@ -68,7 +71,10 @@ export default async function LoginPage({
           {/* Fehler-Anzeige */}
           {errorMessage && (
             <div className="mb-4 px-4 py-3 rounded-lg bg-red-950 border border-red-800 text-red-300 text-sm">
-              {errorMessage}
+              <p>{errorMessage}</p>
+              {params.error && (
+                <p className="mt-1 text-red-500 text-xs font-mono">Code: {params.error}</p>
+              )}
             </div>
           )}
 
