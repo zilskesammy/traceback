@@ -26,47 +26,49 @@ export const authConfig: NextAuthConfig = {
   },
 
   callbacks: {
-    // GitHub Login/ID in User-Row speichern
+    // GitHub Login/ID in User-Row speichern — non-blocking, nie AccessDenied werfen
     async signIn({ user, account, profile }) {
-      if (account?.provider === "github" && profile) {
-        const githubProfile = profile as {
-          id?: number;
-          login?: string;
-        };
-
-        if (githubProfile.id && user.id) {
-          await db.user.update({
-            where: { id: user.id },
-            data: {
-              githubId: String(githubProfile.id),
-              githubLogin: githubProfile.login ?? null,
-            },
-          });
+      try {
+        if (account?.provider === "github" && profile && user.id) {
+          const githubProfile = profile as {
+            id?: number;
+            login?: string;
+          };
+          if (githubProfile.id) {
+            await db.user.update({
+              where: { id: user.id },
+              data: {
+                githubId: String(githubProfile.id),
+                githubLogin: githubProfile.login ?? null,
+              },
+            });
+          }
         }
+      } catch {
+        // Fehler hier soll Login nicht blockieren
       }
       return true;
     },
 
     // Session um userId + githubLogin erweitern
     async session({ session, user }) {
-      const dbUser = await db.user.findUnique({
-        where: { id: user.id },
-        select: {
-          id: true,
-          githubId: true,
-          githubLogin: true,
-        },
-      });
-
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: user.id,
-          githubId: dbUser?.githubId ?? null,
-          githubLogin: dbUser?.githubLogin ?? null,
-        },
-      };
+      try {
+        const dbUser = await db.user.findUnique({
+          where: { id: user.id },
+          select: { id: true, githubId: true, githubLogin: true },
+        });
+        return {
+          ...session,
+          user: {
+            ...session.user,
+            id: user.id,
+            githubId: dbUser?.githubId ?? null,
+            githubLogin: dbUser?.githubLogin ?? null,
+          },
+        };
+      } catch {
+        return { ...session, user: { ...session.user, id: user.id } };
+      }
     },
   },
 
