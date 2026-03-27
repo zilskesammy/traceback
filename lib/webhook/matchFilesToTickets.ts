@@ -63,9 +63,10 @@ export async function matchFilesToTickets(
     return changedFiles.filter((changed) =>
       paths.some(
         (ctx) =>
-          changed === ctx ||
-          changed.startsWith(ctx + "/") ||
-          ctx.startsWith(changed + "/")
+          changed === ctx ||                        // 1. Exakter Match
+          changed.startsWith(ctx + "/") ||          // 2. Verzeichnis-Präfix
+          ctx.startsWith(changed + "/") ||          // 3. Umgekehrter Präfix
+          matchGlob(ctx, changed)                   // 4. Glob-Pattern (z.B. src/**/*.ts)
       )
     );
   }
@@ -132,4 +133,35 @@ export async function matchFilesToTickets(
 function parseFileList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
+}
+
+/**
+ * Einfaches Glob-Pattern-Matching ohne externe Abhängigkeit.
+ * Unterstützt:
+ *  - `*`  → beliebige Zeichen außer /
+ *  - `**` → beliebige Zeichen inkl. /
+ *  - `?`  → ein beliebiges Zeichen außer /
+ *
+ * Beispiele:
+ *  matchGlob("src/** /*.ts", "src/lib/auth.ts")   → true
+ *  matchGlob("*.config.js", "vite.config.js")     → true
+ *  matchGlob("src/components/**", "src/components/Button.tsx") → true
+ */
+function matchGlob(pattern: string, filePath: string): boolean {
+  // Kein Glob-Zeichen → kein Glob-Match (schnellerer Pfad)
+  if (!pattern.includes("*") && !pattern.includes("?")) return false;
+
+  // Glob-Pattern in Regex umwandeln
+  const regexStr = pattern
+    .replace(/[.+^${}()|[\]\\]/g, "\\$&") // Sonderzeichen escapen
+    .replace(/\*\*/g, "§§STARSTAR§§")       // ** sichern
+    .replace(/\*/g, "[^/]*")               // * → kein Slash
+    .replace(/§§STARSTAR§§/g, ".*")        // ** → alles
+    .replace(/\?/g, "[^/]");               // ? → ein Zeichen
+
+  try {
+    return new RegExp(`^${regexStr}$`).test(filePath);
+  } catch {
+    return false; // Ungültiges Pattern → kein Match
+  }
 }

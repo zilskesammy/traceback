@@ -153,31 +153,101 @@ async function handlePullRequest(
   const { action, pull_request } = payload;
 
   // Nur relevante Actions verarbeiten
-  if (!["opened", "synchronize", "closed"].includes(action)) {
+  if (!["opened", "synchronize", "closed", "reopened"].includes(action)) {
     return;
   }
 
   const headSha = pull_request.head.sha;
+  const branchName = pull_request.head.ref; // z.B. "claude/task-abc123"
+  const prUrl = pull_request.html_url;
+  const prNumber = pull_request.number;
 
-  // Bei geschlossenen + gemergten PRs: Tickets matchen (Merge-Commit)
+  // Task-ID aus Branch-Name extrahieren (Format: claude/task-{taskId})
+  const taskId = extractTaskIdFromBranch(branchName);
+
+  // ── PR geschlossen + gemergt → Task auf DONE ────────────────────────────
   if (action === "closed" && pull_request.merged) {
+    if (taskId) {
+      await updateTaskFromPR(projectId, taskId, "DONE", prUrl, headSha, pull_request.user.login);
+      console.log(`[webhook] PR #${prNumber} merged → task ${taskId} → DONE`);
+    }
+    // Dateien gegen alle Tickets matchen (Merge-Commit)
     const result = await matchFilesToTickets(
       projectId,
       headSha,
-      [], // Keine Dateiliste — nur diffRef aktualisieren
+      [],
       pull_request.user.login
     );
     console.log(
-      `[webhook] PR #${pull_request.number} merged sha=${headSha.slice(0, 7)} matched=${result.total}`
+      `[webhook] PR #${prNumber} merged sha=${headSha.slice(0, 7)} matched=${result.total}`
     );
+    return;
   }
 
-  // Bei neuen Commits auf einem PR: sha als diffRef in passende Tasks schreiben
-  if (action === "synchronize" || action === "opened") {
-    console.log(
-      `[webhook] PR #${pull_request.number} ${action} sha=${headSha.slice(0, 7)}`
-    );
+  // ── PR geschlossen (ohne Merge) → Task zurück auf TODO ──────────────────
+  if (action === "closed" && !pull_request.merged) {
+    if (taskId) {
+      await updateTaskFromPR(projectId, taskId, "TODO", prUrl, headSha, pull_request.user.login);
+      console.log(`[webhook] PR #${prNumber} closed (no merge) → task ${taskId} → TODO`);
+    }
+    return;
   }
+
+  // ── PR geöffnet oder neue Commits (synchronize) → Task auf IN_REVIEW ────
+  if (action === "opened" || action === "synchronize" || action === "reopened") {
+    if (taskId) {
+      await updateTaskFromPR(projectId, taskId, "IN_REVIEW", prUrl, headSha, pull_request.user.login);
+      console.log(`[webhook] PR #${prNumber} ${action} → task ${taskId} → IN_REVIEW`);
+    } else {
+      console.log(`[webhook] PR #${prNumber} ${action} sha=${headSha.slice(0, 7)} (no task linked)`);
+    }
+  }
+}
+
+/**
+ * Extrahiert die Task-ID aus einem Branch-Namen.
+ * Erwartet Format: "claude/task-{taskId}" oder "task/{taskId}"
+ */
+function extractTaskIdFromBranch(branch: string): string | null {
+  const match = branch.match(/(?:claude\/task-|task\/)([a-zA-Z0-9]+)$/);
+  return match?.[1] ?? null;
+}
+
+/**
+ * Aktualisiert einen Task mit PR-Daten — nur wenn der Task zum Projekt gehört.
+ */
+async function updateTaskFromPR(
+  projectId: string,
+  taskId: string,
+  status: "TODO" | "IN_REVIEW" | "DONE",
+  prUrl: string,
+  commitSha: string,
+  changedBy: string
+): Promise<void> {
+  // Prüfen ob Task zum Projekt gehört (Security-Check)
+  const task = await db.task.findFirst({
+    where: {
+      id: taskId,
+      feature: { epic: { projectId } },
+    },
+    select: { id: true, status: true },
+  });
+
+  if (!task) return; // Task nicht gefunden oder falsches Projekt
+
+  // Nicht zurücksetzen wenn Task bereits DONE ist und ein "older" Event kommt
+  if (task.status === "DONE" && status !== "DONE") return;
+
+  await db.task.update({
+    where: { id: taskId },
+    data: {
+      status,
+      prUrl,
+      diffRef: commitSha,
+      changedBy,
+      changedAt: new Date(),
+    },
+  });
 }
 
 // ─── HILFSFUNKTIONEN ─────────────────────────────────────────────────────────

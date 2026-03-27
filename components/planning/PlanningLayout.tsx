@@ -8,6 +8,7 @@ import Link from "next/link";
 import { FeatureBoard } from "./FeatureBoard";
 import { KanbanBoard } from "./KanbanBoard";
 import { YamlView } from "./YamlView";
+import { CommitsView } from "./CommitsView";
 import { EpicModal } from "./modals/EpicModal";
 import type { PlanningProject, PlanningEpic, TicketStatus } from "@/types/planning";
 
@@ -244,12 +245,13 @@ function EpicSidebar({
 
 // ─── VIEW TOGGLE ─────────────────────────────────────────────────────────────
 
-type View = "human" | "kanban" | "machine";
+type View = "human" | "kanban" | "machine" | "commits";
 
 const VIEW_LABELS: Record<View, string> = {
   human: "List",
   kanban: "Kanban",
   machine: "YAML",
+  commits: "Commits",
 };
 
 function ViewToggle({
@@ -261,7 +263,7 @@ function ViewToggle({
 }) {
   return (
     <div className="flex items-center gap-0 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 border border-[0.5px] border-zinc-200 dark:border-zinc-700">
-      {(["human", "kanban", "machine"] as const).map((v) => (
+      {(["human", "kanban", "machine", "commits"] as const).map((v) => (
         <button
           key={v}
           onClick={() => onChange(v)}
@@ -337,7 +339,12 @@ export function PlanningLayout({ project }: { project: PlanningProject }) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
-          {activeEpic === null ? (
+          {view === "commits" ? (
+            <CommitsView
+              projectId={project.id}
+              repoUrl={`https://github.com/${project.repoOwner}/${project.repoName}`}
+            />
+          ) : activeEpic === null ? (
             <div className="flex items-center justify-center h-full">
               <p className="text-sm text-zinc-400 dark:text-zinc-600">
                 Wähle ein Epic aus der Sidebar
