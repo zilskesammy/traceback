@@ -3,6 +3,8 @@
 
 import { useState } from "react";
 import { DiffModal } from "./DiffModal";
+import { FeatureModal } from "./modals/FeatureModal";
+import { TaskModal } from "./modals/TaskModal";
 import type { PlanningFeature, PlanningTask, TicketStatus } from "@/types/planning";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -24,6 +26,24 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   DONE: "Done",
   CANCELLED: "Cancelled",
 };
+
+// ─── ICON HELPERS ─────────────────────────────────────────────────────────────
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16.414H8v-2a2 2 0 01.586-1.414z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M3 7h18" />
+    </svg>
+  );
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -104,9 +124,46 @@ function CommitBadge({ sha }: { sha: string }) {
 
 // ─── TASK ROW ─────────────────────────────────────────────────────────────────
 
-function TaskRow({ task }: { task: PlanningTask }) {
+function TaskRow({
+  task,
+  projectId,
+  epicId,
+  featureId,
+  onEdit,
+  onDeleted,
+}: {
+  task: PlanningTask;
+  projectId: string;
+  epicId: string;
+  featureId: string;
+  onEdit: (task: PlanningTask) => void;
+  onDeleted: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Task "${task.title}" wirklich löschen?`)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/epics/${epicId}/features/${featureId}/tasks/${task.id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error(`Fehler ${res.status}`);
+      onDeleted();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+      setDeleting(false);
+    }
+  }
+
   return (
-    <div className="flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+    <div
+      className={`flex items-start gap-2.5 py-1.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors group ${
+        deleting ? "opacity-40 pointer-events-none" : ""
+      }`}
+    >
       {/* Status dot */}
       <span
         className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[task.status]}`}
@@ -139,6 +196,24 @@ function TaskRow({ task }: { task: PlanningTask }) {
           </div>
         )}
       </div>
+
+      {/* Action buttons — visible on row hover */}
+      <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+          title="Bearbeiten"
+          className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+        >
+          <PencilIcon className="w-3 h-3" />
+        </button>
+        <button
+          onClick={handleDelete}
+          title="Löschen"
+          className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+        >
+          <TrashIcon className="w-3 h-3" />
+        </button>
+      </span>
     </div>
   );
 }
@@ -148,20 +223,57 @@ function TaskRow({ task }: { task: PlanningTask }) {
 interface FeatureCardProps {
   feature: PlanningFeature;
   projectId: string;
+  epicId: string;
+  onMutated: () => void;
 }
 
-export function FeatureCard({ feature, projectId }: FeatureCardProps) {
+export function FeatureCard({ feature, projectId, epicId, onMutated }: FeatureCardProps) {
   const [tasksExpanded, setTasksExpanded] = useState(false);
   const [diffOpen, setDiffOpen] = useState(false);
+  const [featureModalOpen, setFeatureModalOpen] = useState(false);
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<PlanningTask | undefined>(undefined);
+  const [deletingFeature, setDeletingFeature] = useState(false);
 
   const hasDiff = !!feature.diffRef;
   const hasChangedFiles = feature.changedFiles.length > 0;
   const hasContextFiles = feature.contextFiles.length > 0;
   const hasTasks = feature.tasks.length > 0;
 
+  function openEditTask(task: PlanningTask) {
+    setEditingTask(task);
+    setTaskModalOpen(true);
+  }
+
+  function openNewTask() {
+    setEditingTask(undefined);
+    setTaskModalOpen(true);
+  }
+
+  async function handleDeleteFeature(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Feature "${feature.title}" wirklich löschen? Alle Tasks werden ebenfalls gelöscht.`)) return;
+    setDeletingFeature(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/epics/${epicId}/features/${feature.id}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error(`Fehler ${res.status}`);
+      onMutated();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+      setDeletingFeature(false);
+    }
+  }
+
   return (
     <>
-      <article className="bg-white dark:bg-zinc-900 rounded-xl border border-[0.5px] border-zinc-200 dark:border-zinc-800 overflow-hidden">
+      <article
+        className={`bg-white dark:bg-zinc-900 rounded-xl border border-[0.5px] border-zinc-200 dark:border-zinc-800 overflow-hidden transition-opacity ${
+          deletingFeature ? "opacity-40 pointer-events-none" : ""
+        }`}
+      >
         {/* ── Header ── */}
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-start gap-2.5">
@@ -189,6 +301,24 @@ export function FeatureCard({ feature, projectId }: FeatureCardProps) {
                   {feature.description}
                 </p>
               )}
+            </div>
+
+            {/* Feature action buttons */}
+            <div className="flex items-center gap-0.5 shrink-0">
+              <button
+                onClick={() => setFeatureModalOpen(true)}
+                title="Feature bearbeiten"
+                className="w-6 h-6 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                <PencilIcon className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleDeleteFeature}
+                title="Feature löschen"
+                className="w-6 h-6 flex items-center justify-center rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-800 transition-colors"
+              >
+                <TrashIcon className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -247,9 +377,10 @@ export function FeatureCard({ feature, projectId }: FeatureCardProps) {
           </div>
         )}
 
-        {/* ── Task Toggle ── */}
-        {hasTasks && (
-          <div className="border-t border-[0.5px] border-zinc-100 dark:border-zinc-800">
+        {/* ── Tasks section ── */}
+        <div className="border-t border-[0.5px] border-zinc-100 dark:border-zinc-800">
+          {/* Toggle header — only show if there are tasks */}
+          {hasTasks && (
             <button
               onClick={() => setTasksExpanded((p) => !p)}
               className="w-full px-4 py-2 flex items-center gap-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
@@ -279,17 +410,44 @@ export function FeatureCard({ feature, projectId }: FeatureCardProps) {
                 {feature.tasks.length} done
               </span>
             </button>
+          )}
 
-            {/* Task list */}
-            {tasksExpanded && (
-              <div className="px-2 pb-2 space-y-0.5">
-                {feature.tasks.map((task) => (
-                  <TaskRow key={task.id} task={task} />
-                ))}
-              </div>
-            )}
+          {/* Task list */}
+          {(tasksExpanded || !hasTasks) && hasTasks && (
+            <div className="px-2 pb-1 space-y-0.5">
+              {feature.tasks.map((task) => (
+                <TaskRow
+                  key={task.id}
+                  task={task}
+                  projectId={projectId}
+                  epicId={epicId}
+                  featureId={feature.id}
+                  onEdit={openEditTask}
+                  onDeleted={onMutated}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Add Task button */}
+          <div className="px-4 py-2">
+            <button
+              onClick={openNewTask}
+              className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-indigo-400 transition-colors"
+            >
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Task hinzufügen
+            </button>
           </div>
-        )}
+        </div>
       </article>
 
       {/* DiffModal */}
@@ -305,6 +463,30 @@ export function FeatureCard({ feature, projectId }: FeatureCardProps) {
           title={feature.title}
         />
       )}
+
+      {/* FeatureModal (edit) */}
+      <FeatureModal
+        isOpen={featureModalOpen}
+        onClose={() => setFeatureModalOpen(false)}
+        projectId={projectId}
+        epicId={epicId}
+        feature={feature}
+        onSuccess={onMutated}
+      />
+
+      {/* TaskModal (create / edit) */}
+      <TaskModal
+        isOpen={taskModalOpen}
+        onClose={() => setTaskModalOpen(false)}
+        projectId={projectId}
+        epicId={epicId}
+        featureId={feature.id}
+        task={editingTask}
+        onSuccess={() => {
+          setEditingTask(undefined);
+          onMutated();
+        }}
+      />
     </>
   );
 }

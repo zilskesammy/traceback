@@ -3,8 +3,10 @@
 // Sidebar (Epics) + Hauptbereich (FeatureBoard oder YamlView) + View-Toggle
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { FeatureBoard } from "./FeatureBoard";
 import { YamlView } from "./YamlView";
+import { EpicModal } from "./modals/EpicModal";
 import type { PlanningProject, PlanningEpic, TicketStatus } from "@/types/planning";
 
 // ─── STATUS HELPERS ──────────────────────────────────────────────────────────
@@ -27,6 +29,32 @@ const STATUS_LABEL: Record<TicketStatus, string> = {
   CANCELLED: "Cancelled",
 };
 
+// ─── ICON HELPERS ─────────────────────────────────────────────────────────────
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828A2 2 0 0110 16.414H8v-2a2 2 0 01.586-1.414z" />
+    </svg>
+  );
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M3 7h18" />
+    </svg>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+    </svg>
+  );
+}
+
 // ─── SIDEBAR ──────────────────────────────────────────────────────────────────
 
 function EpicSidebar({
@@ -34,85 +62,167 @@ function EpicSidebar({
   activeId,
   onSelect,
   projectName,
+  projectId,
+  onMutated,
 }: {
   epics: PlanningEpic[];
   activeId: string | null;
   onSelect: (id: string) => void;
   projectName: string;
+  projectId: string;
+  onMutated: () => void;
 }) {
+  const [epicModalOpen, setEpicModalOpen] = useState(false);
+  const [editingEpic, setEditingEpic] = useState<PlanningEpic | undefined>(undefined);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  function openCreate() {
+    setEditingEpic(undefined);
+    setEpicModalOpen(true);
+  }
+
+  function openEdit(epic: PlanningEpic, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingEpic(epic);
+    setEpicModalOpen(true);
+  }
+
+  async function handleDelete(epic: PlanningEpic, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`Epic "${epic.title}" wirklich löschen? Alle Features und Tasks werden ebenfalls gelöscht.`)) return;
+
+    setDeletingId(epic.id);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/epics/${epic.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error(`Fehler ${res.status}`);
+      onMutated();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
-    <aside className="w-60 shrink-0 h-full flex flex-col border-r border-[0.5px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-y-auto">
-      {/* Project name */}
-      <div className="px-4 py-4 border-b border-[0.5px] border-zinc-200 dark:border-zinc-800">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-0.5">
-          Project
-        </p>
-        <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-          {projectName}
-        </p>
-      </div>
-
-      {/* Epics list */}
-      <div className="px-2 py-3 flex-1">
-        <p className="px-2 mb-2 text-[10px] font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-          Epics
-        </p>
-
-        {epics.length === 0 && (
-          <p className="px-2 text-xs text-zinc-400 dark:text-zinc-600 italic">
-            Noch keine Epics
+    <>
+      <aside className="w-60 shrink-0 h-full flex flex-col border-r border-[0.5px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-y-auto">
+        {/* Project name */}
+        <div className="px-4 py-4 border-b border-[0.5px] border-zinc-200 dark:border-zinc-800">
+          <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-0.5">
+            Project
           </p>
-        )}
+          <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+            {projectName}
+          </p>
+        </div>
 
-        <ul className="space-y-0.5">
-          {epics.map((epic) => {
-            const isActive = epic.id === activeId;
-            const featureCount = epic.features.length;
-            const doneCount = epic.features.filter(
-              (f) => f.status === "DONE"
-            ).length;
+        {/* Epics list */}
+        <div className="px-2 py-3 flex-1">
+          {/* Section header with "+" button */}
+          <div className="flex items-center justify-between px-2 mb-2">
+            <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+              Epics
+            </p>
+            <button
+              onClick={openCreate}
+              title="Neues Epic"
+              className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+            >
+              <PlusIcon className="w-3 h-3" />
+            </button>
+          </div>
 
-            return (
-              <li key={epic.id}>
-                <button
-                  onClick={() => onSelect(epic.id)}
-                  className={`
-                    w-full text-left px-2 py-2 rounded-lg transition-colors duration-100
-                    flex items-start gap-2.5 group
-                    ${
-                      isActive
-                        ? "bg-zinc-100 dark:bg-zinc-800/80"
-                        : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                    }
-                  `}
-                >
-                  {/* Status dot */}
-                  <span
-                    className={`mt-[5px] w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[epic.status]}`}
-                  />
-                  <span className="flex-1 min-w-0">
-                    <span
-                      className={`block text-sm leading-snug truncate ${
+          {epics.length === 0 && (
+            <p className="px-2 text-xs text-zinc-400 dark:text-zinc-600 italic">
+              Noch keine Epics
+            </p>
+          )}
+
+          <ul className="space-y-0.5">
+            {epics.map((epic) => {
+              const isActive = epic.id === activeId;
+              const featureCount = epic.features.length;
+              const doneCount = epic.features.filter((f) => f.status === "DONE").length;
+              const isDeleting = deletingId === epic.id;
+
+              return (
+                <li key={epic.id}>
+                  <button
+                    onClick={() => onSelect(epic.id)}
+                    disabled={isDeleting}
+                    className={`
+                      w-full text-left px-2 py-2 rounded-lg transition-colors duration-100
+                      flex items-start gap-2.5 group
+                      ${isDeleting ? "opacity-50 cursor-not-allowed" : ""}
+                      ${
                         isActive
-                          ? "text-zinc-900 dark:text-zinc-100 font-medium"
-                          : "text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200"
-                      }`}
-                    >
-                      {epic.title}
-                    </span>
-                    {featureCount > 0 && (
-                      <span className="text-[10px] text-zinc-400 dark:text-zinc-600">
-                        {doneCount}/{featureCount} Features
+                          ? "bg-zinc-100 dark:bg-zinc-800/80"
+                          : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                      }
+                    `}
+                  >
+                    {/* Status dot */}
+                    <span
+                      className={`mt-[5px] w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[epic.status]}`}
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span
+                        className={`block text-sm leading-snug truncate ${
+                          isActive
+                            ? "text-zinc-900 dark:text-zinc-100 font-medium"
+                            : "text-zinc-600 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-200"
+                        }`}
+                      >
+                        {epic.title}
                       </span>
-                    )}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </aside>
+                      {featureCount > 0 && (
+                        <span className="text-[10px] text-zinc-400 dark:text-zinc-600">
+                          {doneCount}/{featureCount} Features
+                        </span>
+                      )}
+                    </span>
+
+                    {/* Action buttons — visible on hover */}
+                    <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => openEdit(epic, e)}
+                        onKeyDown={(e) => e.key === "Enter" && openEdit(epic, e as unknown as React.MouseEvent)}
+                        title="Bearbeiten"
+                        className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors"
+                      >
+                        <PencilIcon className="w-3 h-3" />
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => handleDelete(epic, e)}
+                        onKeyDown={(e) => e.key === "Enter" && handleDelete(epic, e as unknown as React.MouseEvent)}
+                        title="Löschen"
+                        className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-700 transition-colors"
+                      >
+                        <TrashIcon className="w-3 h-3" />
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </aside>
+
+      <EpicModal
+        isOpen={epicModalOpen}
+        onClose={() => setEpicModalOpen(false)}
+        projectId={projectId}
+        epic={editingEpic}
+        onSuccess={onMutated}
+      />
+    </>
   );
 }
 
@@ -152,12 +262,17 @@ function ViewToggle({
 // ─── MAIN LAYOUT ─────────────────────────────────────────────────────────────
 
 export function PlanningLayout({ project }: { project: PlanningProject }) {
+  const router = useRouter();
   const [activeEpicId, setActiveEpicId] = useState<string | null>(
     project.epics[0]?.id ?? null
   );
   const [view, setView] = useState<View>("human");
 
   const activeEpic = project.epics.find((e) => e.id === activeEpicId) ?? null;
+
+  function handleMutated() {
+    router.refresh();
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
@@ -167,6 +282,8 @@ export function PlanningLayout({ project }: { project: PlanningProject }) {
         activeId={activeEpicId}
         onSelect={setActiveEpicId}
         projectName={project.name}
+        projectId={project.id}
+        onMutated={handleMutated}
       />
 
       {/* Main area */}
@@ -208,6 +325,8 @@ export function PlanningLayout({ project }: { project: PlanningProject }) {
             <FeatureBoard
               features={activeEpic.features}
               projectId={project.id}
+              epicId={activeEpic.id}
+              onMutated={handleMutated}
             />
           ) : (
             <YamlView features={activeEpic.features} epicTitle={activeEpic.title} />
