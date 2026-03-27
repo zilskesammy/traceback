@@ -13,6 +13,11 @@ export default auth((req: NextRequest & { auth: unknown }) => {
     return NextResponse.next();
   }
 
+  // API-Key Requests: x-api-key Header vorhanden → Auth im Route Handler prüfen
+  if (req.headers.get("x-api-key")) {
+    return NextResponse.next();
+  }
+
   // Docs sind öffentlich lesbar
   if (pathname.startsWith("/docs")) {
     return NextResponse.next();
