@@ -1,12 +1,90 @@
 // app/api/projects/[id]/tickets/route.ts
 // GET /api/projects/:id/tickets
-// Returns the full project tree (epics → features → tasks) as YAML.
-// Auth: API key ONLY (no session fallback).
+// Gibt den vollen Projekt-Baum (Epics → Features → Tasks) als JSON oder YAML zurück.
+// Auth: x-api-key Header, Key muss zum angefragten Projekt gehören.
 
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { db } from "@/lib/db";
-import { serializeProjectToYaml } from "@/lib/api/yaml";
+import { validateApiKey } from "@/lib/apiKey";
+import yaml from "js-yaml";
+import { Prisma } from "@prisma/client";
+
+// ─── Typen ────────────────────────────────────────────────────────────────────
+
+const projectWithTree = Prisma.validator<Prisma.ProjectDefaultArgs>()({
+  include: {
+    epics: {
+      orderBy: { order: "asc" as const },
+      include: {
+        features: {
+          orderBy: { order: "asc" as const },
+          include: {
+            tasks: {
+              orderBy: { order: "asc" as const },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+
+type ProjectWithTree = Prisma.ProjectGetPayload<typeof projectWithTree>;
+
+// ─── Serialisierung ───────────────────────────────────────────────────────────
+
+function parseJsonArray(value: Prisma.JsonValue | null | undefined): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter((v): v is string => typeof v === "string");
+}
+
+function isoOrNull(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
+}
+
+function buildDoc(project: ProjectWithTree) {
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+    },
+    epics: project.epics.map((epic) => ({
+      id: epic.id,
+      title: epic.title,
+      description: epic.description ?? null,
+      status: epic.status,
+      order: epic.order,
+      features: epic.features.map((feature) => ({
+        id: feature.id,
+        title: feature.title,
+        description: feature.description ?? null,
+        status: feature.status,
+        assignee: feature.assignee ?? null,
+        acceptanceCriteria: feature.acceptanceCriteria ?? null,
+        contextFiles: parseJsonArray(feature.contextFiles),
+        changedFiles: parseJsonArray(feature.changedFiles),
+        diffRef: feature.diffRef ?? null,
+        diffSummary: feature.diffSummary ?? null,
+        changedBy: feature.changedBy ?? null,
+        changedAt: isoOrNull(feature.changedAt),
+        tasks: feature.tasks.map((task) => ({
+          id: task.id,
+          title: task.title,
+          instruction: task.instruction ?? null,
+          status: task.status,
+          assignee: task.assignee ?? null,
+          contextFiles: parseJsonArray(task.contextFiles),
+          changedFiles: parseJsonArray(task.changedFiles),
+          diffRef: task.diffRef ?? null,
+          changedBy: task.changedBy ?? null,
+          changedAt: isoOrNull(task.changedAt),
+        })),
+      })),
+    })),
+  };
+}
+
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(
   request: NextRequest,
@@ -14,71 +92,37 @@ export async function GET(
 ) {
   const { id: projectId } = await params;
 
-  // ── API key auth only ─────────────────────────────────────────────────────
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
-
-  const rawKey = authHeader.slice(7).trim();
+  // ── Auth: x-api-key Header ────────────────────────────────────────────────
+  const rawKey = request.headers.get("x-api-key");
   if (!rawKey) {
-    return new NextResponse("Unauthorized", { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-
-  const apiKey = await db.apiKey.findUnique({
-    where: { keyHash },
-    select: { id: true, userId: true, projectId: true },
-  });
-
-  if (!apiKey) {
-    return new NextResponse("Unauthorized", { status: 401 });
+  const { valid, projectId: keyProjectId } = await validateApiKey(rawKey);
+  if (!valid || keyProjectId !== projectId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // The API key must be scoped to this project
-  if (apiKey.projectId !== projectId) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
-
-  // Update lastUsedAt non-blocking
-  db.apiKey
-    .update({
-      where: { id: apiKey.id },
-      data: { lastUsedAt: new Date() },
-    })
-    .catch(() => {});
-
-  // ── Fetch project + full tree ─────────────────────────────────────────────
+  // ── Daten laden ───────────────────────────────────────────────────────────
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: {
-      epics: {
-        orderBy: { order: "asc" },
-        include: {
-          features: {
-            orderBy: { order: "asc" },
-            include: {
-              tasks: {
-                orderBy: { order: "asc" },
-              },
-            },
-          },
-        },
-      },
-    },
+    ...projectWithTree,
   });
 
   if (!project) {
-    return new NextResponse("Not Found", { status: 404 });
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
 
-  const yamlString = serializeProjectToYaml(project);
+  const doc = buildDoc(project);
 
-  return new NextResponse(yamlString, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/yaml; charset=utf-8",
-    },
-  });
+  // ── Serialisierung: YAML oder JSON je nach Accept-Header ─────────────────
+  const accept = request.headers.get("accept") ?? "";
+  if (accept.includes("application/yaml")) {
+    return new NextResponse(yaml.dump(doc, { lineWidth: 120, noRefs: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/yaml; charset=utf-8" },
+    });
+  }
+
+  return NextResponse.json(doc);
 }

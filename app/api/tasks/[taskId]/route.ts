@@ -1,12 +1,26 @@
 // app/api/tasks/[taskId]/route.ts
 // GET /api/tasks/:taskId
-// Returns a single task as YAML with parent feature + epic context.
-// Auth: API key or session.
+// Gibt einen einzelnen Task als JSON oder YAML zurück, mit Feature + Epic Kontext.
+// Auth: x-api-key Header, Key muss zum Projekt des Tasks gehören.
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { resolveAuth } from "@/lib/api/auth-middleware";
-import { serializeTaskToYaml } from "@/lib/api/yaml";
+import { validateApiKey } from "@/lib/apiKey";
+import yaml from "js-yaml";
+import { Prisma } from "@prisma/client";
+
+// ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
+
+function parseJsonArray(value: Prisma.JsonValue | null | undefined): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return value.filter((v): v is string => typeof v === "string");
+}
+
+function isoOrNull(value: Date | null | undefined): string | null {
+  return value ? value.toISOString() : null;
+}
+
+// ─── GET ──────────────────────────────────────────────────────────────────────
 
 export async function GET(
   request: NextRequest,
@@ -14,17 +28,19 @@ export async function GET(
 ) {
   const { taskId } = await params;
 
-  // ── Fetch the task with its parent hierarchy ─────────────────────────────
-  // We need the projectId before we can call resolveAuth, so fetch the task
-  // first (without auth) to retrieve projectId, then validate membership.
+  // ── Task mit Eltern-Hierarchie laden ─────────────────────────────────────
+  // projectId wird erst nach dem Laden bekannt, daher zuerst ohne Auth fetchen,
+  // dann Key gegen projectId prüfen.
   const task = await db.task.findUnique({
     where: { id: taskId },
     include: {
       feature: {
         include: {
           epic: {
-            include: {
-              project: { select: { id: true } },
+            select: {
+              id: true,
+              title: true,
+              projectId: true,
             },
           },
         },
@@ -33,45 +49,53 @@ export async function GET(
   });
 
   if (!task) {
-    return new NextResponse("Not Found", { status: 404 });
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
   }
 
-  const projectId = task.feature.epic.project.id;
+  const projectId = task.feature.epic.projectId;
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const authResult = await resolveAuth(request, projectId);
-  if (!authResult) {
-    return new NextResponse("Unauthorized", { status: 401 });
+  // ── Auth: x-api-key Header ────────────────────────────────────────────────
+  const rawKey = request.headers.get("x-api-key");
+  if (!rawKey) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // If auth resolved via API key, verify the key is scoped to this project
-  // (resolveAuth returns the projectId from the ApiKey row for key auth, or
-  //  the passed-in projectId for session auth — either way must match).
-  if (authResult.projectId !== projectId) {
-    return new NextResponse("Forbidden", { status: 403 });
+  const { valid, projectId: keyProjectId } = await validateApiKey(rawKey);
+  if (!valid || keyProjectId !== projectId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Verify project membership
-  const member = await db.projectMember.findUnique({
-    where: {
-      projectId_userId: { projectId, userId: authResult.userId },
+  // ── Response-Dokument aufbauen ────────────────────────────────────────────
+  const doc = {
+    id: task.id,
+    title: task.title,
+    instruction: task.instruction ?? null,
+    status: task.status,
+    assignee: task.assignee ?? null,
+    contextFiles: parseJsonArray(task.contextFiles),
+    changedFiles: parseJsonArray(task.changedFiles),
+    diffRef: task.diffRef ?? null,
+    changedBy: task.changedBy ?? null,
+    changedAt: isoOrNull(task.changedAt),
+    feature: {
+      id: task.feature.id,
+      title: task.feature.title,
     },
-    select: { id: true },
-  });
-  if (!member) {
-    return new NextResponse("Forbidden", { status: 403 });
+    epic: {
+      id: task.feature.epic.id,
+      title: task.feature.epic.title,
+    },
+    projectId,
+  };
+
+  // ── Serialisierung: YAML oder JSON je nach Accept-Header ─────────────────
+  const accept = request.headers.get("accept") ?? "";
+  if (accept.includes("application/yaml")) {
+    return new NextResponse(yaml.dump(doc, { lineWidth: 120, noRefs: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/yaml; charset=utf-8" },
+    });
   }
 
-  // ── Serialize to YAML ─────────────────────────────────────────────────────
-  const feature = task.feature;
-  const epic = feature.epic;
-
-  const yamlString = serializeTaskToYaml(task, feature, epic);
-
-  return new NextResponse(yamlString, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/yaml; charset=utf-8",
-    },
-  });
+  return NextResponse.json(doc);
 }
