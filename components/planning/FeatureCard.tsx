@@ -124,6 +124,23 @@ function CommitBadge({ sha }: { sha: string }) {
 
 // ─── TASK ROW ─────────────────────────────────────────────────────────────────
 
+function LightningIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
+
+function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+    </svg>
+  );
+}
+
 function TaskRow({
   task,
   projectId,
@@ -131,6 +148,8 @@ function TaskRow({
   featureId,
   onEdit,
   onDeleted,
+  onImplement,
+  isImplementing,
 }: {
   task: PlanningTask;
   projectId: string;
@@ -138,6 +157,8 @@ function TaskRow({
   featureId: string;
   onEdit: (task: PlanningTask) => void;
   onDeleted: () => void;
+  onImplement?: () => void;
+  isImplementing?: boolean;
 }) {
   const [deleting, setDeleting] = useState(false);
 
@@ -182,6 +203,18 @@ function TaskRow({
           {task.diffRef && (
             <CommitBadge sha={task.diffRef} />
           )}
+          {task.prUrl && (
+            <a
+              href={task.prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title="Pull Request ansehen"
+              className="text-[10px] text-violet-400 hover:text-violet-300 font-mono bg-violet-950/40 px-1.5 py-0.5 rounded border border-[0.5px] border-violet-800 transition-colors"
+            >
+              PR →
+            </a>
+          )}
         </div>
         {task.changedFiles.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
@@ -199,6 +232,20 @@ function TaskRow({
 
       {/* Action buttons — visible on row hover */}
       <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-0.5">
+        {task.status === "TODO" && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onImplement?.(); }}
+            disabled={isImplementing}
+            title="Mit Claude implementieren"
+            className="w-5 h-5 flex items-center justify-center rounded text-zinc-400 hover:text-violet-400 hover:bg-zinc-700 disabled:opacity-40 transition-colors"
+          >
+            {isImplementing ? (
+              <SpinnerIcon className="w-3 h-3 animate-spin" />
+            ) : (
+              <LightningIcon className="w-3 h-3" />
+            )}
+          </button>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); onEdit(task); }}
           title="Bearbeiten"
@@ -234,6 +281,7 @@ export function FeatureCard({ feature, projectId, epicId, onMutated }: FeatureCa
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<PlanningTask | undefined>(undefined);
   const [deletingFeature, setDeletingFeature] = useState(false);
+  const [implementingTaskId, setImplementingTaskId] = useState<string | null>(null);
 
   const hasDiff = !!feature.diffRef;
   const hasChangedFiles = feature.changedFiles.length > 0;
@@ -248,6 +296,28 @@ export function FeatureCard({ feature, projectId, epicId, onMutated }: FeatureCa
   function openNewTask() {
     setEditingTask(undefined);
     setTaskModalOpen(true);
+  }
+
+  async function handleImplementTask(task: PlanningTask) {
+    if (!confirm(`"${task.title}" mit Claude implementieren?\n\nClaude liest die Context Files, schreibt den Code und erstellt einen GitHub Pull Request.`)) return;
+    setImplementingTaskId(task.id);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/implement`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({})) as { error?: string; prUrl?: string };
+      if (!res.ok) {
+        throw new Error(data?.error ?? `Fehler ${res.status}`);
+      }
+      onMutated();
+      if (data.prUrl) {
+        window.open(data.prUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Implementierung fehlgeschlagen");
+    } finally {
+      setImplementingTaskId(null);
+    }
   }
 
   async function handleDeleteFeature(e: React.MouseEvent) {
@@ -424,6 +494,8 @@ export function FeatureCard({ feature, projectId, epicId, onMutated }: FeatureCa
                   featureId={feature.id}
                   onEdit={openEditTask}
                   onDeleted={onMutated}
+                  onImplement={() => handleImplementTask(task)}
+                  isImplementing={implementingTaskId === task.id}
                 />
               ))}
             </div>

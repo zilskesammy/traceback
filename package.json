@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@auth/prisma-adapter": "^2.11.1",
+    "@octokit/rest": "^22.0.1",
     "@prisma/client": "^6.19.2",
     "@types/js-yaml": "^4.0.9",
     "fuse.js": "^7.1.0",

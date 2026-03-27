@@ -54,6 +54,7 @@ function serializeTask(
     contextFiles: parseStringArray(task.contextFiles),
     changedFiles: parseStringArray(task.changedFiles),
     diffRef: task.diffRef,
+    prUrl: task.prUrl ?? null,
     changedBy: task.changedBy,
     changedAt: task.changedAt?.toISOString() ?? null,
     order: task.order,

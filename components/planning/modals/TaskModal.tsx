@@ -50,6 +50,7 @@ export function TaskModal({
   const [assignee, setAssignee] = useState("");
   const [contextFiles, setContextFiles] = useState("");
   const [loading, setLoading] = useState(false);
+  const [implementing, setImplementing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,6 +63,28 @@ export function TaskModal({
       setError(null);
     }
   }, [isOpen, task]);
+
+  async function handleImplement() {
+    if (!task?.id) return;
+    setImplementing(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/implement`, { method: "POST" });
+      const data = await res.json().catch(() => ({})) as { error?: string; prUrl?: string };
+      if (!res.ok) {
+        throw new Error(data?.error ?? `Fehler ${res.status}`);
+      }
+      onSuccess();
+      onClose();
+      if (data.prUrl) {
+        window.open(data.prUrl, "_blank", "noopener,noreferrer");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Implementierung fehlgeschlagen");
+    } finally {
+      setImplementing(false);
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -207,27 +230,50 @@ export function TaskModal({
         )}
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white text-sm transition-colors"
-          >
-            Abbrechen
-          </button>
-          <button
-            type="submit"
-            disabled={loading}
-            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center gap-2"
-          >
-            {loading && (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            )}
-            {isEditing ? "Speichern" : "Task erstellen"}
-          </button>
+        <div className="flex items-center gap-2 pt-1">
+          {/* Implement with Claude — nur bei TODO Tasks im Edit-Modus */}
+          {isEditing && status === "TODO" && (
+            <button
+              type="button"
+              onClick={handleImplement}
+              disabled={implementing || loading}
+              className="mr-auto px-4 py-2 rounded-lg bg-violet-700 hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              {implementing ? (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : (
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+              {implementing ? "Claude implementiert…" : "Mit Claude implementieren"}
+            </button>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg border border-zinc-700 text-zinc-400 hover:text-white text-sm transition-colors"
+            >
+              Abbrechen
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center gap-2"
+            >
+              {loading && (
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              )}
+              {isEditing ? "Speichern" : "Task erstellen"}
+            </button>
+          </div>
         </div>
       </form>
     </TicketModal>

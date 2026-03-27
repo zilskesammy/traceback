@@ -184,6 +184,7 @@ model Task {
   contextFiles Json?
   changedFiles Json?
   diffRef      String?
+  prUrl        String?
   changedBy    String?
   changedAt    DateTime?
   order        Int          @default(0)

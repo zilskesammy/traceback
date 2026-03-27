@@ -18,6 +18,7 @@ export interface PlanningTask {
   contextFiles: string[];
   changedFiles: string[];
   diffRef: string | null;
+  prUrl: string | null;
   changedBy: string | null;
   changedAt: string | null; // ISO-String (von Date serialisiert)
   order: number;
