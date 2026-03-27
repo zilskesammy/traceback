@@ -29,6 +29,7 @@ interface FeatureModalProps {
   projectId: string;
   epicId: string;
   feature?: PlanningFeature;
+  preselectedStatus?: TicketStatus;
   onSuccess: () => void;
 }
 
@@ -38,6 +39,7 @@ export function FeatureModal({
   projectId,
   epicId,
   feature,
+  preselectedStatus,
   onSuccess,
 }: FeatureModalProps) {
   const isEditing = !!feature;
@@ -55,13 +57,13 @@ export function FeatureModal({
     if (isOpen) {
       setTitle(feature?.title ?? "");
       setDescription(feature?.description ?? "");
-      setStatus(feature?.status ?? "BACKLOG");
+      setStatus(feature?.status ?? preselectedStatus ?? "BACKLOG");
       setAssignee(feature?.assignee ?? "");
       setContextFiles((feature?.contextFiles ?? []).join("\n"));
       setAcceptanceCriteria("");
       setError(null);
     }
-  }, [isOpen, feature]);
+  }, [isOpen, feature, preselectedStatus]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
