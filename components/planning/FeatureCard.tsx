@@ -141,6 +141,15 @@ function SpinnerIcon({ className }: { className?: string }) {
   );
 }
 
+const STATUS_ORDER: TicketStatus[] = [
+  "BACKLOG",
+  "TODO",
+  "IN_PROGRESS",
+  "IN_REVIEW",
+  "DONE",
+  "CANCELLED",
+];
+
 function TaskRow({
   task,
   projectId,
@@ -150,6 +159,7 @@ function TaskRow({
   onDeleted,
   onImplement,
   isImplementing,
+  onStatusChanged,
 }: {
   task: PlanningTask;
   projectId: string;
@@ -159,8 +169,34 @@ function TaskRow({
   onDeleted: () => void;
   onImplement?: () => void;
   isImplementing?: boolean;
+  onStatusChanged?: () => void;
 }) {
   const [deleting, setDeleting] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [statusChanging, setStatusChanging] = useState(false);
+
+  async function handleStatusChange(e: React.MouseEvent, newStatus: TicketStatus) {
+    e.stopPropagation();
+    setStatusOpen(false);
+    if (newStatus === task.status) return;
+    setStatusChanging(true);
+    try {
+      const res = await fetch(
+        `/api/projects/${projectId}/epics/${epicId}/features/${featureId}/tasks/${task.id}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        }
+      );
+      if (!res.ok) throw new Error(`Fehler ${res.status}`);
+      onStatusChanged?.();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Status-Änderung fehlgeschlagen");
+    } finally {
+      setStatusChanging(false);
+    }
+  }
 
   async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
@@ -185,11 +221,45 @@ function TaskRow({
         deleting ? "opacity-40 pointer-events-none" : ""
       }`}
     >
-      {/* Status dot */}
-      <span
-        className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[task.status]}`}
-        title={STATUS_LABEL[task.status]}
-      />
+      {/* Status dot — klickbar für Schnellwechsel */}
+      <div className="relative shrink-0 mt-1">
+        <button
+          onClick={(e) => { e.stopPropagation(); setStatusOpen((p) => !p); }}
+          disabled={statusChanging}
+          title={`Status: ${STATUS_LABEL[task.status]} — klicken zum Ändern`}
+          className={`w-3 h-3 rounded-full border-2 border-transparent hover:scale-125 hover:border-white/20 transition-transform ${
+            statusChanging ? "animate-pulse" : ""
+          } ${STATUS_DOT[task.status]}`}
+        />
+        {statusOpen && (
+          <>
+            {/* Backdrop zum Schließen */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={(e) => { e.stopPropagation(); setStatusOpen(false); }}
+            />
+            <div className="absolute left-0 top-5 z-50 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl py-1 min-w-[140px]">
+              {STATUS_ORDER.map((s) => (
+                <button
+                  key={s}
+                  onClick={(e) => handleStatusChange(e, s)}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-zinc-800 transition-colors text-left ${
+                    s === task.status ? "text-white font-medium" : "text-zinc-400"
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[s]}`} />
+                  {STATUS_LABEL[s]}
+                  {s === task.status && (
+                    <svg className="ml-auto w-3 h-3 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
@@ -496,6 +566,7 @@ export function FeatureCard({ feature, projectId, epicId, onMutated }: FeatureCa
                   onDeleted={onMutated}
                   onImplement={() => handleImplementTask(task)}
                   isImplementing={implementingTaskId === task.id}
+                  onStatusChanged={onMutated}
                 />
               ))}
             </div>
