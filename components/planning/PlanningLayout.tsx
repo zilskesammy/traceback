@@ -109,7 +109,7 @@ function EpicSidebar({
 
   return (
     <>
-      <aside className="w-60 shrink-0 h-full flex flex-col border-r border-[0.5px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-y-auto">
+      <aside className="w-60 shrink-0 h-full flex flex-col border-r border-[0.5px] border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden">
         {/* Project name */}
         <div className="px-4 py-4 border-b border-[0.5px] border-zinc-200 dark:border-zinc-800">
           <p className="text-[10px] font-medium uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-0.5">
@@ -215,9 +215,8 @@ function EpicSidebar({
             })}
           </ul>
         </div>
-      </aside>
 
-        {/* Settings link */}
+        {/* Settings link — fest am unteren Rand der Sidebar */}
         <div className="shrink-0 px-3 py-3 border-t border-[0.5px] border-zinc-200 dark:border-zinc-800">
           <Link
             href={`/projects/${projectId}/settings`}
@@ -230,6 +229,7 @@ function EpicSidebar({
             Einstellungen
           </Link>
         </div>
+      </aside>
 
       <EpicModal
         isOpen={epicModalOpen}
