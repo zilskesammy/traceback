@@ -143,6 +143,44 @@ export async function commitFiles(
   return newCommit.sha;
 }
 
+// ─── WEBHOOK ──────────────────────────────────────────────────────────────────
+
+/**
+ * Registriert einen GitHub Webhook für push + pull_request Events.
+ * Gibt true zurück wenn erfolgreich (oder Webhook bereits existiert).
+ */
+export async function createGitHubWebhook(
+  owner: string,
+  repo: string,
+  token: string,
+  webhookUrl: string,
+  secret: string
+): Promise<boolean> {
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/hooks`, {
+    method: "POST",
+    headers: {
+      Authorization: `token ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: "web",
+      active: true,
+      events: ["push", "pull_request"],
+      config: {
+        url: webhookUrl,
+        content_type: "json",
+        secret,
+        insecure_ssl: "0",
+      },
+    }),
+  });
+
+  // 201 = erstellt, 422 = bereits vorhanden — beides OK
+  return res.status === 201 || res.status === 422;
+}
+
 // ─── PULL REQUEST ─────────────────────────────────────────────────────────────
 
 /**

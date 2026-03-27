@@ -130,9 +130,18 @@ export async function POST(
     );
   }
 
+  // Auto-assign sequential number per project
+  const lastTask = await db.task.findFirst({
+    where: { feature: { epic: { projectId } } },
+    orderBy: { number: "desc" },
+    select: { number: true },
+  });
+  const nextNumber = (lastTask?.number ?? 0) + 1;
+
   const task = await db.task.create({
     data: {
       featureId,
+      number: nextNumber,
       title: title.trim(),
       instruction: typeof instruction === "string" ? instruction : undefined,
       assignee: typeof assignee === "string" ? assignee : undefined,

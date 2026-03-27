@@ -11,6 +11,7 @@ export type TicketStatus =
 
 export interface PlanningTask {
   id: string;
+  number: number;
   title: string;
   instruction: string | null;
   assignee: string | null;

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { NewProjectForm } from "./NewProjectForm";
+import { createGitHubWebhook } from "@/lib/github-api";
 
 // GitHub-Repos des eingeloggten Users laden
 async function fetchUserRepos(accessToken: string) {
@@ -78,6 +79,10 @@ export default async function NewProjectPage() {
 
     if (!name?.trim() || !repoUrl?.trim() || !repoOwner?.trim() || !repoName?.trim()) return;
 
+    // Starkes Webhook-Secret generieren
+    const { randomBytes } = await import("crypto");
+    const webhookSecret = randomBytes(32).toString("hex");
+
     const project = await db.project.create({
       data: {
         name: name.trim(),
@@ -86,7 +91,7 @@ export default async function NewProjectPage() {
         repoOwner: repoOwner.trim(),
         repoName: repoName.trim(),
         githubInstallationId: "",
-        webhookSecret: crypto.randomUUID(),
+        webhookSecret,
         defaultBranch,
         members: {
           create: {
@@ -96,6 +101,25 @@ export default async function NewProjectPage() {
         },
       },
     });
+
+    // Webhook automatisch auf GitHub registrieren
+    const ghAccount = await db.account.findFirst({
+      where: { userId: session.user.id, provider: "github" },
+      select: { access_token: true },
+    });
+    if (ghAccount?.access_token && process.env.NEXT_PUBLIC_APP_URL) {
+      const webhookUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook/github`;
+      await createGitHubWebhook(
+        repoOwner.trim(),
+        repoName.trim(),
+        ghAccount.access_token,
+        webhookUrl,
+        webhookSecret
+      ).catch(() => {
+        // Webhook-Fehler sind nicht kritisch — Nutzer kann manuell einrichten
+        console.warn("[new-project] Webhook-Registrierung fehlgeschlagen");
+      });
+    }
 
     redirect(`/projects/${project.id}`);
   }

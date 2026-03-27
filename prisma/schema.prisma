@@ -176,6 +176,7 @@ model Feature {
 
 model Task {
   id           String       @id @default(cuid())
+  number       Int          @default(0)
   featureId    String
   title        String
   instruction  String?      @db.Text

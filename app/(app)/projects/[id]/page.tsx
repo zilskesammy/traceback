@@ -47,6 +47,7 @@ function serializeTask(
 ): PlanningTask {
   return {
     id: task.id,
+    number: task.number,
     title: task.title,
     instruction: task.instruction,
     assignee: task.assignee,

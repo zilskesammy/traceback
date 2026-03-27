@@ -144,6 +144,38 @@ async function handlePush(
   console.log(
     `[webhook] push sha=${headSha.slice(0, 7)} files=${changedFiles.length} matched=${result.total} (features=${result.featuresMatched}, tasks=${result.tasksMatched})`
   );
+
+  // TB-123 Convention: Task-Nummern aus allen Commit-Messages parsen → IN_PROGRESS
+  let taskNumbersUpdated = 0;
+  for (const commit of payload.commits) {
+    const taskNumbers = extractTaskNumbersFromMessage(commit.message);
+    for (const num of taskNumbers) {
+      const task = await db.task.findFirst({
+        where: {
+          number: num,
+          feature: { epic: { projectId } },
+          status: { in: ["BACKLOG", "TODO"] },
+        },
+        select: { id: true },
+      });
+      if (task) {
+        await db.task.update({
+          where: { id: task.id },
+          data: {
+            status: "IN_PROGRESS",
+            changedBy: commit.author.name,
+            changedAt: new Date(commit.timestamp),
+            diffRef: commit.id,
+          },
+        });
+        taskNumbersUpdated++;
+      }
+    }
+  }
+
+  if (taskNumbersUpdated > 0) {
+    console.log(`[webhook] TB-convention: ${taskNumbersUpdated} task(s) → IN_PROGRESS`);
+  }
 }
 
 async function handlePullRequest(
@@ -165,11 +197,17 @@ async function handlePullRequest(
   // Task-ID aus Branch-Name extrahieren (Format: claude/task-{taskId})
   const taskId = extractTaskIdFromBranch(branchName);
 
+  // TB-123 Convention: Task-Nummern aus PR-Titel parsen
+  const titleTaskNumbers = extractTaskNumbersFromMessage(pull_request.title);
+
   // ── PR geschlossen + gemergt → Task auf DONE ────────────────────────────
   if (action === "closed" && pull_request.merged) {
     if (taskId) {
       await updateTaskFromPR(projectId, taskId, "DONE", prUrl, headSha, pull_request.user.login);
       console.log(`[webhook] PR #${prNumber} merged → task ${taskId} → DONE`);
+    }
+    for (const num of titleTaskNumbers) {
+      await updateTaskByNumber(projectId, num, "DONE", prUrl, headSha, pull_request.user.login);
     }
     // Dateien gegen alle Tickets matchen (Merge-Commit)
     const result = await matchFilesToTickets(
@@ -190,6 +228,9 @@ async function handlePullRequest(
       await updateTaskFromPR(projectId, taskId, "TODO", prUrl, headSha, pull_request.user.login);
       console.log(`[webhook] PR #${prNumber} closed (no merge) → task ${taskId} → TODO`);
     }
+    for (const num of titleTaskNumbers) {
+      await updateTaskByNumber(projectId, num, "TODO", prUrl, headSha, pull_request.user.login);
+    }
     return;
   }
 
@@ -198,8 +239,12 @@ async function handlePullRequest(
     if (taskId) {
       await updateTaskFromPR(projectId, taskId, "IN_REVIEW", prUrl, headSha, pull_request.user.login);
       console.log(`[webhook] PR #${prNumber} ${action} → task ${taskId} → IN_REVIEW`);
-    } else {
+    } else if (titleTaskNumbers.length === 0) {
       console.log(`[webhook] PR #${prNumber} ${action} sha=${headSha.slice(0, 7)} (no task linked)`);
+    }
+    for (const num of titleTaskNumbers) {
+      await updateTaskByNumber(projectId, num, "IN_REVIEW", prUrl, headSha, pull_request.user.login);
+      console.log(`[webhook] PR #${prNumber} ${action} → TB-${num} → IN_REVIEW`);
     }
   }
 }
@@ -211,6 +256,15 @@ async function handlePullRequest(
 function extractTaskIdFromBranch(branch: string): string | null {
   const match = branch.match(/(?:claude\/task-|task\/)([a-zA-Z0-9]+)$/);
   return match?.[1] ?? null;
+}
+
+/**
+ * Extrahiert Task-Nummern aus einer Commit-Message oder PR-Titel.
+ * Convention: "TB-123: Feature implementiert" → [123]
+ */
+function extractTaskNumbersFromMessage(message: string): number[] {
+  const matches = [...message.matchAll(/TB-(\d+)/gi)];
+  return matches.map(m => parseInt(m[1], 10));
 }
 
 /**
@@ -247,6 +301,30 @@ async function updateTaskFromPR(
       changedBy,
       changedAt: new Date(),
     },
+  });
+}
+
+/**
+ * Aktualisiert einen Task anhand seiner TB-Nummer (project-scoped).
+ */
+async function updateTaskByNumber(
+  projectId: string,
+  taskNumber: number,
+  status: "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE",
+  prUrl: string,
+  commitSha: string,
+  changedBy: string
+): Promise<void> {
+  const task = await db.task.findFirst({
+    where: { number: taskNumber, feature: { epic: { projectId } } },
+    select: { id: true, status: true },
+  });
+  if (!task) return;
+  if (task.status === "DONE" && status !== "DONE") return;
+
+  await db.task.update({
+    where: { id: task.id },
+    data: { status, prUrl, diffRef: commitSha, changedBy, changedAt: new Date() },
   });
 }
 
