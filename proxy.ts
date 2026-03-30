@@ -19,7 +19,8 @@ export default auth((req: NextRequest & { auth: unknown }) => {
   }
 
   // MCP-Endpoint: GET ist public (Server-Info), POST authentifiziert sich selbst
-  if (pathname === "/api/mcp") {
+  // OAuth-Discovery: Claude Code fetcht /.well-known/ vor dem Connect
+  if (pathname === "/api/mcp" || pathname.startsWith("/.well-known/")) {
     return NextResponse.next();
   }
 
