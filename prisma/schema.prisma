@@ -185,12 +185,18 @@ model Task {
   contextFiles Json?
   changedFiles Json?
   diffRef      String?
-  prUrl        String?
-  changedBy    String?
-  changedAt    DateTime?
-  order        Int          @default(0)
+  prUrl          String?
+  delegateId     String?
+  delegateStatus DelegateStatus?
+  changedBy      String?
+  changedAt      DateTime?
+  order          Int          @default(0)
 
-  feature Feature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  feature      Feature       @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  delegate     Agent?        @relation("TaskDelegate", fields: [delegateId], references: [id])
+  sessionSteps SessionStep[]
+  linkedPrs    LinkedPR[]
+  comments     TaskComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -203,6 +209,39 @@ enum TicketStatus {
   IN_REVIEW
   DONE
   CANCELLED
+}
+
+enum DelegateStatus {
+  IDLE
+  WORKING
+  COMPLETED
+  ERROR
+}
+
+enum SessionStepType {
+  THINKING
+  REASONING
+  ACTION
+  CODE
+  RESULT
+  ERROR
+}
+
+enum LinkType {
+  PR
+  BRANCH
+  COMMIT
+}
+
+enum PRStatus {
+  OPEN
+  MERGED
+  CLOSED
+}
+
+enum AuthorType {
+  HUMAN
+  AGENT
 }
 
 // ─── GIT ─────────────────────────────────────────────────────────────────────
@@ -239,4 +278,64 @@ model ApiKey {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+// ─── MCP / AGENT ─────────────────────────────────────────────────────────────
+
+model Agent {
+  id           String   @id
+  name         String
+  provider     String
+  model        String?
+  capabilities String[]
+  avatarUrl    String?
+  guidance     String?  @db.Text
+  createdAt    DateTime @default(now())
+
+  sessionSteps   SessionStep[]
+  delegatedTasks Task[]        @relation("TaskDelegate")
+}
+
+model SessionStep {
+  id        String          @id @default(cuid())
+  ticketId  String
+  agentId   String
+  sequence  Int
+  type      SessionStepType
+  content   String          @db.Text
+  metadata  Json            @default("{}")
+  createdAt DateTime        @default(now())
+
+  task  Task  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id])
+
+  @@index([ticketId, sequence])
+  @@index([agentId])
+}
+
+model LinkedPR {
+  id        String   @id @default(cuid())
+  ticketId  String
+  url       String
+  type      LinkType @default(PR)
+  title     String?
+  status    PRStatus @default(OPEN)
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+model TaskComment {
+  id         String     @id @default(cuid())
+  ticketId   String
+  content    String     @db.Text
+  authorType AuthorType @default(AGENT)
+  authorId   String
+  createdAt  DateTime   @default(now())
+
+  task Task @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
