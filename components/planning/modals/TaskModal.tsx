@@ -4,6 +4,9 @@
 import { useState, useEffect, FormEvent } from "react";
 import { TicketModal } from "./TicketModal";
 import type { PlanningTask, TicketStatus } from "@/types/planning";
+import { SessionViewer } from "../SessionViewer";
+import { AgentDelegation } from "../AgentDelegation";
+import type { DelegateStatus } from "../AgentBadge";
 
 const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
   { value: "BACKLOG", label: "Backlog" },
@@ -52,6 +55,7 @@ export function TaskModal({
   const [loading, setLoading] = useState(false);
   const [implementing, setImplementing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"details" | "session">("details");
 
   useEffect(() => {
     if (isOpen) {
@@ -61,6 +65,7 @@ export function TaskModal({
       setAssignee(task?.assignee ?? "");
       setContextFiles((task?.contextFiles ?? []).join("\n"));
       setError(null);
+      setActiveTab("details");
     }
   }, [isOpen, task]);
 
@@ -141,86 +146,128 @@ export function TaskModal({
       title={isEditing ? "Task bearbeiten" : "Neuer Task"}
     >
       <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Titel <span className="text-red-400">*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Task-Titel"
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 transition-colors"
-          />
-        </div>
-
-        {/* Instruction */}
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Arbeitsanweisung
-            <span className="ml-1.5 text-xs font-normal text-zinc-500">(Agent-Instruction)</span>
-          </label>
-          <textarea
-            value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
-            placeholder="Schreibe die genaue Arbeitsanweisung für den Agenten..."
-            rows={6}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 resize-none transition-colors"
-          />
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Status
-          </label>
-          <div className="relative">
-            <span
-              className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${STATUS_DOT[status]}`}
-            />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as TicketStatus)}
-              className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+        {/* Tabs — nur im Edit-Modus */}
+        {isEditing && (
+          <div className="flex gap-1 border-b border-zinc-800 mb-4">
+            {(["details", "session"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setActiveTab(t)}
+                className={`px-3 py-2 text-xs font-medium transition-colors ${
+                  activeTab === t
+                    ? "text-white border-b-2 border-indigo-500"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                {t === "details" ? "Details" : "Session Trail"}
+              </button>
+            ))}
           </div>
-        </div>
+        )}
 
-        {/* Assignee */}
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Assignee
-          </label>
-          <input
-            type="text"
-            value={assignee}
-            onChange={(e) => setAssignee(e.target.value)}
-            placeholder="human oder claude-opus"
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 transition-colors"
-          />
-        </div>
+        {/* Agent Delegation — nur im Edit-Modus, Details-Tab */}
+        {isEditing && activeTab === "details" && task?.id && (
+          <div className="mb-4 p-3 bg-zinc-900/60 border border-zinc-800 rounded-lg">
+            <AgentDelegation
+              taskId={task.id}
+              currentDelegateId={task.delegateId ?? null}
+              currentStatus={(task.delegateStatus as DelegateStatus) ?? null}
+              onChanged={onSuccess}
+            />
+          </div>
+        )}
 
-        {/* Context Files */}
-        <div>
-          <label className="block text-sm font-medium text-zinc-300 mb-1.5">
-            Context Files
-            <span className="ml-1.5 text-xs font-normal text-zinc-500">(ein Pfad pro Zeile)</span>
-          </label>
-          <textarea
-            value={contextFiles}
-            onChange={(e) => setContextFiles(e.target.value)}
-            placeholder={"src/lib/auth.ts\nsrc/app/api/..."}
-            rows={3}
-            className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm font-mono focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 resize-none transition-colors"
-          />
-        </div>
+        {/* Formfelder — im Create-Modus immer sichtbar, im Edit-Modus nur im Details-Tab */}
+        {(!isEditing || activeTab === "details") && (
+          <>
+            {/* Title */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Titel <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Task-Titel"
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 transition-colors"
+              />
+            </div>
+
+            {/* Instruction */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Arbeitsanweisung
+                <span className="ml-1.5 text-xs font-normal text-zinc-500">(Agent-Instruction)</span>
+              </label>
+              <textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                placeholder="Schreibe die genaue Arbeitsanweisung für den Agenten..."
+                rows={6}
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 resize-none transition-colors"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Status
+              </label>
+              <div className="relative">
+                <span
+                  className={`pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${STATUS_DOT[status]}`}
+                />
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TicketStatus)}
+                  className="w-full pl-8 pr-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
+                >
+                  {STATUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Assignee */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Assignee
+              </label>
+              <input
+                type="text"
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                placeholder="human oder claude-opus"
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 transition-colors"
+              />
+            </div>
+
+            {/* Context Files */}
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-1.5">
+                Context Files
+                <span className="ml-1.5 text-xs font-normal text-zinc-500">(ein Pfad pro Zeile)</span>
+              </label>
+              <textarea
+                value={contextFiles}
+                onChange={(e) => setContextFiles(e.target.value)}
+                placeholder={"src/lib/auth.ts\nsrc/app/api/..."}
+                rows={3}
+                className="w-full px-3 py-2.5 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-sm font-mono focus:outline-none focus:border-indigo-500 placeholder:text-zinc-500 resize-none transition-colors"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Session Trail Tab */}
+        {isEditing && activeTab === "session" && task?.id && (
+          <SessionViewer taskId={task.id} />
+        )}
 
         {/* Error */}
         {error && (

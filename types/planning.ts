@@ -23,6 +23,8 @@ export interface PlanningTask {
   changedBy: string | null;
   changedAt: string | null; // ISO-String (von Date serialisiert)
   order: number;
+  delegateId: string | null;        // NEU
+  delegateStatus: "IDLE" | "WORKING" | "COMPLETED" | "ERROR" | null;  // NEU
 }
 
 export interface PlanningFeature {

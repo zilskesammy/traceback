@@ -59,6 +59,8 @@ function serializeTask(
     changedBy: task.changedBy,
     changedAt: task.changedAt?.toISOString() ?? null,
     order: task.order,
+    delegateId: task.delegateId ?? null,
+    delegateStatus: task.delegateStatus as PlanningTask["delegateStatus"] ?? null,
   };
 }
 

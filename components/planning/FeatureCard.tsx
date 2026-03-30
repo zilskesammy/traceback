@@ -5,6 +5,8 @@ import { useState } from "react";
 import { DiffModal } from "./DiffModal";
 import { FeatureModal } from "./modals/FeatureModal";
 import { TaskModal } from "./modals/TaskModal";
+import { AgentBadge } from "./AgentBadge";
+import type { DelegateStatus } from "./AgentBadge";
 import type { PlanningFeature, PlanningTask, TicketStatus } from "@/types/planning";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -265,6 +267,14 @@ function TaskRow({
           <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
             {task.title}
           </span>
+          {task.delegateId && (
+            <AgentBadge
+              agentId={task.delegateId}
+              agentName={task.delegateId}
+              status={task.delegateStatus as DelegateStatus | null}
+              size="sm"
+            />
+          )}
           {task.assignee && (
             <span className="text-[10px] text-zinc-400 dark:text-zinc-500">
               — {task.assignee}
