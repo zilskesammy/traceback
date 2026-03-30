@@ -13,8 +13,13 @@ export default auth((req: NextRequest & { auth: unknown }) => {
     return NextResponse.next();
   }
 
-  // API-Key Requests: x-api-key Header vorhanden → Auth im Route Handler prüfen
-  if (req.headers.get("x-api-key")) {
+  // API-Key / Bearer-Token Requests: Auth im Route Handler prüfen
+  if (req.headers.get("x-api-key") || req.headers.get("authorization")?.startsWith("Bearer ")) {
+    return NextResponse.next();
+  }
+
+  // MCP-Endpoint: GET ist public (Server-Info), POST authentifiziert sich selbst
+  if (pathname === "/api/mcp") {
     return NextResponse.next();
   }
 
