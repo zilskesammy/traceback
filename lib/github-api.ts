@@ -205,3 +205,27 @@ export async function openPullRequest(
   });
   return pr.html_url;
 }
+
+// ─── DIRECTORY LISTING ───────────────────────────────────────────────────────
+
+/**
+ * Lists all files in a directory of a GitHub repo.
+ * Returns empty array if the directory does not exist (404).
+ */
+export async function listDirectory(
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string
+): Promise<Array<{ name: string; path: string; sha: string }>> {
+  try {
+    const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
+    if (!Array.isArray(data)) return [];
+    return data
+      .filter((item) => item.type === "file")
+      .map((item) => ({ name: item.name, path: item.path, sha: item.sha }));
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) return [];
+    throw err;
+  }
+}
