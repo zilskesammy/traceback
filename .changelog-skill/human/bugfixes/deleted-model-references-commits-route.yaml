@@ -1,0 +1,116 @@
+_machine_ref: "machine/bugfixes/deleted-model-references-commits-route.json"
+
+meta:
+  id: "fix-20260331-001"
+  title: "Deleted model references removed from commits route and CommitsView"
+  category: "bugfix"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-31T15:10:00Z"
+  updated_at: "2026-03-31T15:10:00Z"
+  ticket_id: ""
+  tags:
+    - typescript
+    - prisma
+    - commits
+    - model-removal
+
+  description:
+    summary: >
+      Two TypeScript compilation errors caused by references to deleted Prisma
+      models (Task, Feature) in the commits API route and the CommitsView
+      component. Both files were updated to remove all usage of the gone models.
+    root_cause: >
+      After the Prisma schema migration that replaced Epic/Feature/Task with
+      ChangelogFeature/Entry/CodeChange, the commits route still queried
+      db.task and db.feature. The CommitsView component still imported
+      TicketStatus from @/types/planning, which no longer exports that type.
+      These were not caught until tsc --noEmit was run.
+    impact: >
+      TypeScript build would fail, blocking Vercel deployments. No runtime
+      data loss — the linked-ticket enrichment was purely additive display
+      logic. The commits list itself was unaffected.
+    affected_components:
+      - "app/api/projects/[id]/commits/route.ts"
+      - "components/planning/CommitsView.tsx"
+    affected_users: "No end-user impact — build-time error only."
+    resolution: >
+      Replaced the commits route with a simplified version that returns only
+      commit data (no linked task/feature enrichment, those models are gone).
+      Replaced the TicketStatus import in CommitsView with an inline
+      `type TicketStatus = string` definition.
+    regression_risk: >
+      None. The linked-ticket display sections in CommitsView still render
+      (they just receive empty arrays from the API), and the STATUS_DOT /
+      STATUS_LABEL maps now accept any string key — which is a no-op since
+      the API no longer sends linked tickets.
+
+entries:
+  - id: "entry-20260331-151000-be01"
+    timestamp: "2026-03-31T15:10:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Removed db.task and db.feature queries from commits route"
+    description:
+      what: >
+        Replaced the entire app/api/projects/[id]/commits/route.ts with a
+        simplified version. Removed the db.task.findMany and db.feature.findMany
+        calls, the sha-index map, and the linkedTasks/linkedFeatures fields from
+        the response shape. The route now returns plain commit data only.
+      why: >
+        db.task and db.feature no longer exist in the Prisma client after the
+        schema migration. Their presence caused TypeScript compilation errors
+        (TS2339: Property 'task' does not exist on type PrismaClient).
+      technical_details: >
+        The previous route fetched all SHAs, then queried Task and Feature by
+        diffRef overlap and built a per-SHA index. All of this was removed.
+        The result object now omits linkedTasks and linkedFeatures entirely,
+        which also simplifies the CommitEntry type on the frontend.
+      side_effects: >
+        The commits API response no longer includes linkedTasks or
+        linkedFeatures arrays. Any client code that read those fields will
+        get undefined. CommitsView already handles empty arrays gracefully.
+    code_changes:
+      - file: "app/api/projects/[id]/commits/route.ts"
+        change_type: "modified"
+        lines_added: 2
+        lines_removed: 35
+        diff_summary: "Removed Task/Feature queries and sha-index map; simplified result shape"
+    dependencies: []
+    related_entries: []
+
+  - id: "entry-20260331-151000-be02"
+    timestamp: "2026-03-31T15:10:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Replaced TicketStatus import with inline type in CommitsView"
+    description:
+      what: >
+        In components/planning/CommitsView.tsx, replaced the named import
+        `import type { TicketStatus } from "@/types/planning"` with an inline
+        type alias `type TicketStatus = string`.
+      why: >
+        @/types/planning no longer exports TicketStatus after the planning
+        module was restructured. The inline string alias preserves the type
+        annotations without needing to refactor the STATUS_DOT / STATUS_LABEL
+        maps or the LinkedTicket interface.
+      technical_details: >
+        Using `type TicketStatus = string` means STATUS_DOT and STATUS_LABEL
+        become `Record<string, string>` at the type level. The runtime
+        behavior is unchanged — the maps are looked up by status strings from
+        the API response.
+      side_effects: >
+        None. The component compiles cleanly. The linked-ticket display UI
+        remains in the file even though the API no longer sends that data,
+        which means it silently renders nothing for those sections.
+    code_changes:
+      - file: "components/planning/CommitsView.tsx"
+        change_type: "modified"
+        lines_added: 1
+        lines_removed: 1
+        diff_summary: "Swapped named TicketStatus import for inline string alias"
+    dependencies: []
+    related_entries:
+      - "entry-20260331-151000-be01"

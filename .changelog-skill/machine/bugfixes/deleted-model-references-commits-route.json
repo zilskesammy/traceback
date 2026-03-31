@@ -1,0 +1,29 @@
+{
+  "id": "fix-20260331-001",
+  "title": "Deleted model references removed from commits route and CommitsView",
+  "category": "bugfix",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-31T15:10:00Z",
+  "updated_at": "2026-03-31T15:10:00Z",
+  "ticket_id": "",
+  "tags": ["typescript", "prisma", "commits", "model-removal"],
+  "summary": "Two TypeScript compilation errors caused by references to deleted Prisma models (Task, Feature) in the commits API route and the CommitsView component. Both files were updated to remove all usage of the gone models.",
+  "business_context": null,
+  "acceptance_criteria": null,
+  "root_cause": "After the Prisma schema migration that replaced Epic/Feature/Task with ChangelogFeature/Entry/CodeChange, the commits route still queried db.task and db.feature. The CommitsView component still imported TicketStatus from @/types/planning, which no longer exports that type.",
+  "impact": "TypeScript build would fail, blocking Vercel deployments. No runtime data loss — the linked-ticket enrichment was purely additive display logic.",
+  "resolution": "Replaced the commits route with a simplified version returning only commit data. Replaced the TicketStatus import in CommitsView with an inline type TicketStatus = string definition.",
+  "regression_risk": "None. The linked-ticket display sections in CommitsView still render (they receive empty arrays), and the STATUS_DOT/STATUS_LABEL maps now accept any string key.",
+  "affected_components": [
+    "app/api/projects/[id]/commits/route.ts",
+    "components/planning/CommitsView.tsx"
+  ],
+  "affected_users": "No end-user impact — build-time error only.",
+  "entries_count": 2,
+  "entries": [
+    "entry-20260331-151000-be01",
+    "entry-20260331-151000-be02"
+  ],
+  "_source_yaml": "human/bugfixes/deleted-model-references-commits-route.yaml"
+}

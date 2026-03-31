@@ -1,11 +1,11 @@
 {
   "project": "traceback",
-  "last_updated": "2026-03-31T15:00:00Z",
-  "total_entries": 9,
-  "total_files": 5,
+  "last_updated": "2026-03-31T15:30:02Z",
+  "total_entries": 14,
+  "total_files": 7,
   "categories": {
     "features": {
-      "count": 1,
+      "count": 2,
       "files": [
         {
           "id": "feat-20260331-001",
@@ -16,10 +16,34 @@
           "priority": "high",
           "entries_count": 3,
           "last_entry": "2026-03-31T13:02:00Z"
+        },
+        {
+          "id": "feat-20260331-002",
+          "path": "machine/features/changelog-ui-components.json",
+          "yaml_path": "human/features/changelog-ui-components.yaml",
+          "title": "Changelog UI: ChangelogView, ProjectLayout, Project Page",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 3,
+          "last_entry": "2026-03-31T15:30:02Z"
         }
       ]
     },
-    "bugfixes": {"count": 0, "files": []},
+    "bugfixes": {
+      "count": 1,
+      "files": [
+        {
+          "id": "fix-20260331-001",
+          "path": "machine/bugfixes/deleted-model-references-commits-route.json",
+          "yaml_path": "human/bugfixes/deleted-model-references-commits-route.yaml",
+          "title": "Deleted model references removed from commits route and CommitsView",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 2,
+          "last_entry": "2026-03-31T15:10:00Z"
+        }
+      ]
+    },
     "testing": {"count": 0, "files": []},
     "refactoring": {
       "count": 3,

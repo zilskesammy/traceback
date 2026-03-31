@@ -1,0 +1,41 @@
+{
+  "id": "feat-20260331-002",
+  "title": "Changelog UI: ChangelogView, ProjectLayout, Project Page",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-31T15:30:00Z",
+  "updated_at": "2026-03-31T15:30:00Z",
+  "ticket_id": "",
+  "tags": ["changelog", "ui", "react", "project-page"],
+  "summary": "Three new frontend components implement the changelog viewer UI: ChangelogView (filterable feature list with expandable entry timelines), ProjectLayout (sidebar shell with view switching), and the rewritten project page server component that loads ChangelogFeatures from the DB and passes them to the new layout.",
+  "business_context": "The project page previously rendered a PlanningLayout referencing deleted planning models (Epic/Feature/Task). After the Prisma schema migration to ChangelogFeature/Entry/CodeChange, the entire project view needed to be rebuilt around the new data model. This makes the changelog data collected from agent activity visible and navigable in the UI.",
+  "affected_components": [
+    "components/changelog/ChangelogView.tsx",
+    "components/changelog/ProjectLayout.tsx",
+    "app/(app)/projects/[id]/page.tsx"
+  ],
+  "affected_users": "All users viewing project pages",
+  "acceptance_criteria": [
+    "ChangelogView renders features with type/status/priority badges",
+    "Features expand on click to show entry timeline",
+    "Each entry is further expandable to show what/why/technical details/side effects",
+    "Filter sidebar allows filtering by type and status",
+    "Sync button triggers /api/projects/:id/changelog/sync and refreshes list",
+    "ProjectLayout sidebar allows switching between Changelog and Commits views",
+    "Settings link navigates to /projects/:id/settings",
+    "Project page server component loads DB data and maps to UI types without errors",
+    "TypeScript reports zero errors in the three new/modified files"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 3,
+  "entries": [
+    "entry-20260331-153000-fe01",
+    "entry-20260331-153001-fe02",
+    "entry-20260331-153002-fe03"
+  ],
+  "_source_yaml": "human/features/changelog-ui-components.yaml"
+}
