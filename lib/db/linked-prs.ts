@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import type { LinkType } from "@prisma/client";
 
 export interface CreateLinkedPRInput {
-  ticketId: string;
+  featureId: string;
   url: string;
   type?: LinkType;
   title?: string;
@@ -11,7 +11,7 @@ export interface CreateLinkedPRInput {
 export async function createLinkedPR(input: CreateLinkedPRInput) {
   return db.linkedPR.create({
     data: {
-      ticketId: input.ticketId,
+      featureId: input.featureId,
       url: input.url,
       type: input.type ?? "PR",
       title: input.title ?? null,
@@ -19,9 +19,9 @@ export async function createLinkedPR(input: CreateLinkedPRInput) {
   });
 }
 
-export async function getLinkedPRs(ticketId: string) {
+export async function getLinkedPRs(featureId: string) {
   return db.linkedPR.findMany({
-    where: { ticketId },
+    where: { featureId },
     orderBy: { createdAt: "asc" },
   });
 }

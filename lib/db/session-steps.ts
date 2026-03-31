@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import type { SessionStepType } from "@prisma/client";
 
 export interface CreateSessionStepInput {
-  ticketId: string;
+  featureId: string;
   agentId: string;
   type: SessionStepType;
   content: string;
@@ -11,30 +11,31 @@ export interface CreateSessionStepInput {
 
 export async function createSessionStep(input: CreateSessionStepInput) {
   const last = await db.sessionStep.findFirst({
-    where: { ticketId: input.ticketId },
+    where: { featureId: input.featureId },
     orderBy: { sequence: "desc" },
     select: { sequence: true },
   });
 
   return db.sessionStep.create({
     data: {
-      ticketId: input.ticketId,
+      featureId: input.featureId,
       agentId: input.agentId,
       sequence: (last?.sequence ?? 0) + 1,
       type: input.type,
       content: input.content,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       metadata: (input.metadata ?? {}) as any,
     },
   });
 }
 
 export async function getSessionSteps(
-  ticketId: string,
+  featureId: string,
   opts?: { types?: SessionStepType[]; since?: string }
 ) {
   return db.sessionStep.findMany({
     where: {
-      ticketId,
+      featureId,
       ...(opts?.types?.length ? { type: { in: opts.types } } : {}),
       ...(opts?.since ? { createdAt: { gte: new Date(opts.since) } } : {}),
     },
