@@ -1,110 +1,10 @@
 // app/(app)/projects/[id]/page.tsx — Server Component
-// Lädt Projekt + Epics + Features + Tasks aus DB, serialisiert für Client
+// Loads project + ChangelogFeatures (with entry count), renders ProjectLayout
 
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { PlanningLayout } from "@/components/planning/PlanningLayout";
-import type {
-  PlanningProject,
-  PlanningEpic,
-  PlanningFeature,
-  PlanningTask,
-  TicketStatus,
-} from "@/types/planning";
-import { Prisma } from "@prisma/client";
-
-// ─── PRISMA QUERY TYPES ───────────────────────────────────────────────────────
-
-const projectWithAll = Prisma.validator<Prisma.ProjectDefaultArgs>()({
-  include: {
-    epics: {
-      orderBy: { order: "asc" },
-      include: {
-        features: {
-          orderBy: { order: "asc" },
-          include: {
-            tasks: {
-              orderBy: { order: "asc" },
-            },
-          },
-        },
-      },
-    },
-  },
-});
-
-type ProjectWithAll = Prisma.ProjectGetPayload<typeof projectWithAll>;
-
-// ─── SERIALIZATION ────────────────────────────────────────────────────────────
-
-function parseStringArray(value: Prisma.JsonValue | null): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.filter((v): v is string => typeof v === "string");
-}
-
-function serializeTask(
-  task: ProjectWithAll["epics"][0]["features"][0]["tasks"][0]
-): PlanningTask {
-  return {
-    id: task.id,
-    number: task.number,
-    title: task.title,
-    instruction: task.instruction,
-    assignee: task.assignee,
-    status: task.status as TicketStatus,
-    contextFiles: parseStringArray(task.contextFiles),
-    changedFiles: parseStringArray(task.changedFiles),
-    diffRef: task.diffRef,
-    prUrl: task.prUrl ?? null,
-    changedBy: task.changedBy,
-    changedAt: task.changedAt?.toISOString() ?? null,
-    order: task.order,
-    delegateId: task.delegateId ?? null,
-    delegateStatus: task.delegateStatus as PlanningTask["delegateStatus"] ?? null,
-  };
-}
-
-function serializeFeature(
-  feature: ProjectWithAll["epics"][0]["features"][0]
-): PlanningFeature {
-  return {
-    id: feature.id,
-    title: feature.title,
-    description: feature.description,
-    status: feature.status as TicketStatus,
-    assignee: feature.assignee,
-    contextFiles: parseStringArray(feature.contextFiles),
-    changedFiles: parseStringArray(feature.changedFiles),
-    diffRef: feature.diffRef,
-    diffSummary: feature.diffSummary,
-    changedBy: feature.changedBy,
-    changedAt: feature.changedAt?.toISOString() ?? null,
-    order: feature.order,
-    tasks: feature.tasks.map(serializeTask),
-  };
-}
-
-function serializeProject(project: ProjectWithAll): PlanningProject {
-  return {
-    id: project.id,
-    name: project.name,
-    repoOwner: project.repoOwner,
-    repoName: project.repoName,
-    defaultBranch: project.defaultBranch,
-    epics: project.epics.map(
-      (epic): PlanningEpic => ({
-        id: epic.id,
-        title: epic.title,
-        description: epic.description,
-        status: epic.status as TicketStatus,
-        order: epic.order,
-        features: epic.features.map(serializeFeature),
-      })
-    ),
-  };
-}
-
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
+import { ProjectLayout } from "@/components/changelog/ProjectLayout";
+import type { UIProject, UIChangelogFeature } from "@/types/changelog";
 
 export default async function ProjectPage({
   params,
@@ -115,12 +15,88 @@ export default async function ProjectPage({
 
   const project = await db.project.findUnique({
     where: { id },
-    ...projectWithAll,
+    select: {
+      id: true,
+      name: true,
+      repoOwner: true,
+      repoName: true,
+      defaultBranch: true,
+    },
   });
 
   if (!project) notFound();
 
-  const serialized = serializeProject(project);
+  const rawFeatures = await db.changelogFeature.findMany({
+    where: { projectId: id },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      _count: { select: { entries: true } },
+      entries: {
+        orderBy: { timestamp: "asc" },
+        include: { codeChanges: { orderBy: { file: "asc" } } },
+      },
+    },
+  });
 
-  return <PlanningLayout project={serialized} />;
+  const uiProject: UIProject = {
+    id: project.id,
+    name: project.name,
+    repoOwner: project.repoOwner,
+    repoName: project.repoName,
+    defaultBranch: project.defaultBranch,
+  };
+
+  const features: UIChangelogFeature[] = rawFeatures.map((f) => ({
+    id: f.id,
+    projectId: f.projectId,
+    parentId: f.parentId,
+    type: f.type,
+    status: f.status,
+    priority: f.priority,
+    title: f.title,
+    summary: f.summary,
+    businessContext: f.businessContext,
+    rootCause: f.rootCause,
+    impact: f.impact,
+    resolution: f.resolution,
+    regressionRisk: f.regressionRisk,
+    affectedComponents: f.affectedComponents,
+    affectedUsers: f.affectedUsers,
+    acceptanceCriteria: f.acceptanceCriteria,
+    tags: f.tags,
+    source: f.source,
+    sourceFile: f.sourceFile,
+    createdAt: f.createdAt.toISOString(),
+    updatedAt: f.updatedAt.toISOString(),
+    entries: f.entries.map((e) => ({
+      id: e.id,
+      featureId: e.featureId,
+      timestamp: e.timestamp.toISOString(),
+      agentType: e.agentType,
+      agentName: e.agentName,
+      action: e.action,
+      summary: e.summary,
+      what: e.what,
+      why: e.why,
+      technicalDetails: e.technicalDetails,
+      sideEffects: e.sideEffects,
+      dependencies: e.dependencies,
+      relatedEntryIds: e.relatedEntryIds,
+      linesAdded: e.linesAdded,
+      linesRemoved: e.linesRemoved,
+      createdAt: e.createdAt.toISOString(),
+      codeChanges: e.codeChanges.map((cc) => ({
+        id: cc.id,
+        entryId: cc.entryId,
+        file: cc.file,
+        changeType: cc.changeType,
+        linesAdded: cc.linesAdded,
+        linesRemoved: cc.linesRemoved,
+        diffSummary: cc.diffSummary,
+      })),
+    })),
+    _entryCount: f._count.entries,
+  }));
+
+  return <ProjectLayout project={uiProject} initialFeatures={features} />;
 }
