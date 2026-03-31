@@ -1,4 +1,4 @@
-// types/planning.ts — Serialisierte UI-Typen (nur noch Diff-Typen)
+// types/planning.ts — Serialised UI types (Diff types only)
 
 // ─── DIFF TYPES ──────────────────────────────────────────────────────────────
 

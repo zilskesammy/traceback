@@ -1,4 +1,4 @@
-// types/changelog.ts — Serialisierte UI-Typen für Changelog (Dates als ISO-Strings)
+// types/changelog.ts — Serialised UI types for Changelog (Dates as ISO strings)
 
 export type ChangelogItemType = "FEATURE" | "BUGFIX" | "EPIC" | "TASK";
 export type ChangelogStatus = "PLANNED" | "IN_PROGRESS" | "COMPLETED";
@@ -36,6 +36,7 @@ export interface UIChangelogEntry {
   relatedEntryIds: string[];
   linesAdded: number;
   linesRemoved: number;
+  createdAt: string; // ISO
   codeChanges: UICodeChange[];
 }
 
@@ -63,6 +64,7 @@ export interface UIChangelogFeature {
   updatedAt: string; // ISO
   entries: UIChangelogEntry[];
   _entryCount?: number; // for list view without full entries
+  // children, linkedPrs, sessionSteps omitted — load separately if needed
 }
 
 export interface UIProject {
