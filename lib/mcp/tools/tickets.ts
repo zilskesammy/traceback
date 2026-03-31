@@ -2,57 +2,30 @@ import { z } from "zod";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { db } from "@/lib/db";
 import type { McpAuthContext } from "../server";
-import type { TicketStatus } from "@prisma/client";
+import type { ChangelogItemType, ChangelogStatus } from "@/types/changelog";
 
-function toDbStatus(s: string): TicketStatus {
-  return s.toUpperCase().replace(/-/g, "_") as TicketStatus;
+function toDbStatus(s: string): ChangelogStatus {
+  const map: Record<string, ChangelogStatus> = {
+    planned: "PLANNED",
+    in_progress: "IN_PROGRESS",
+    "in-progress": "IN_PROGRESS",
+    completed: "COMPLETED",
+  };
+  return map[s.toLowerCase()] ?? "PLANNED";
 }
 
-function fromDbStatus(s: TicketStatus): string {
-  return s.toLowerCase().replace(/_/g, "-");
-}
-
-async function getOrCreateMcpFeature(projectId: string): Promise<string> {
-  const existing = await db.epic.findFirst({
-    where: { projectId, title: "MCP Tasks" },
-    include: { features: { where: { title: "Inbox" }, take: 1 } },
-  });
-
-  if (existing?.features[0]) return existing.features[0].id;
-
-  if (existing) {
-    const f = await db.feature.create({
-      data: { epicId: existing.id, title: "Inbox", status: "BACKLOG", order: 0 },
-    });
-    return f.id;
-  }
-
-  const epic = await db.epic.create({
-    data: {
-      projectId,
-      title: "MCP Tasks",
-      status: "BACKLOG",
-      order: 999,
-      features: { create: { title: "Inbox", status: "BACKLOG", order: 0 } },
-    },
-    include: { features: true },
-  });
-
-  return epic.features[0].id;
-}
-
-function serializeTask(task: any) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeFeature(f: any) {
   return {
-    id: task.id,
-    title: task.title,
-    instruction: task.instruction ?? null,
-    status: fromDbStatus(task.status),
-    assignee: task.assignee ?? null,
-    delegateId: task.delegateId ?? null,
-    delegateStatus: task.delegateStatus?.toLowerCase() ?? null,
-    prUrl: task.prUrl ?? null,
-    createdAt: task.createdAt?.toISOString() ?? null,
-    updatedAt: task.updatedAt?.toISOString() ?? null,
+    id: f.id,
+    type: f.type,
+    status: f.status?.toLowerCase(),
+    priority: f.priority?.toLowerCase(),
+    title: f.title,
+    summary: f.summary,
+    tags: f.tags,
+    createdAt: f.createdAt?.toISOString() ?? null,
+    updatedAt: f.updatedAt?.toISOString() ?? null,
   };
 }
 
@@ -60,128 +33,127 @@ export function registerTicketTools(server: McpServer, _auth: McpAuthContext) {
 
   server.tool(
     "traceback_list_tickets",
-    "List tickets (tasks) from a project. Filter by status, delegate, or assignee.",
+    "List changelog features from a project. Filter by type, status, or tags.",
     {
       project_id: z.string().describe("Project ID"),
-      status: z.enum(["backlog", "todo", "in-progress", "in-review", "done", "cancelled"]).optional(),
-      delegate_id: z.string().optional().describe("Filter by agent delegate ID"),
-      assignee_id: z.string().optional().describe("Filter by human assignee"),
+      type: z.enum(["feature", "bugfix", "epic", "task"]).optional(),
+      status: z.enum(["planned", "in-progress", "completed"]).optional(),
       limit: z.number().min(1).max(100).optional().describe("Max results, default 50"),
     },
-    async ({ project_id, status, delegate_id, assignee_id, limit }) => {
+    async ({ project_id, type, status, limit }) => {
       try {
-        const tasks = await db.task.findMany({
+        const features = await db.changelogFeature.findMany({
           where: {
-            feature: { epic: { projectId: project_id } },
+            projectId: project_id,
+            ...(type ? { type: type.toUpperCase() as ChangelogItemType } : {}),
             ...(status ? { status: toDbStatus(status) } : {}),
-            ...(delegate_id ? { delegateId: delegate_id } : {}),
-            ...(assignee_id ? { assignee: assignee_id } : {}),
           },
-          orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+          orderBy: { updatedAt: "desc" },
           take: limit ?? 50,
         });
-        return { content: [{ type: "text", text: JSON.stringify(tasks.map(serializeTask), null, 2) }] };
-      } catch (e: any) {
-        return { content: [{ type: "text", text: `Error: ${e.message}` }] };
+        return { content: [{ type: "text", text: JSON.stringify(features.map(serializeFeature), null, 2) }] };
+      } catch (e: unknown) {
+        return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }] };
       }
     }
   );
 
   server.tool(
     "traceback_get_ticket",
-    "Get full ticket detail including session log, linked PRs, and comments.",
+    "Get full changelog feature with all entries and code changes.",
     {
-      ticket_id: z.string().describe("Task ID"),
+      ticket_id: z.string().describe("ChangelogFeature ID"),
       include_session: z.boolean().optional().describe("Include session log, default true"),
     },
     async ({ ticket_id, include_session }) => {
       try {
-        const task = await db.task.findUnique({
+        const feature = await db.changelogFeature.findUnique({
           where: { id: ticket_id },
           include: {
-            feature: { include: { epic: { select: { projectId: true, title: true } } } },
+            entries: {
+              orderBy: { timestamp: "asc" },
+              include: { codeChanges: true },
+            },
             linkedPrs: { orderBy: { createdAt: "asc" } },
-            comments: { orderBy: { createdAt: "asc" } },
           },
         });
-        if (!task) return { content: [{ type: "text", text: "Error: Ticket not found" }] };
+        if (!feature) return { content: [{ type: "text", text: "Error: Feature not found" }] };
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let sessionLog: any[] = [];
         if (include_session !== false) {
           sessionLog = await db.sessionStep.findMany({
-            where: { ticketId: ticket_id },
+            where: { featureId: ticket_id },
             orderBy: { sequence: "asc" },
           });
         }
 
-        const result = { ...serializeTask(task), instruction: task.instruction ?? null, linkedPrs: task.linkedPrs, comments: task.comments, sessionLog };
+        const result = { ...serializeFeature(feature), entries: feature.entries, linkedPrs: feature.linkedPrs, sessionLog };
         return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
-      } catch (e: any) {
-        return { content: [{ type: "text", text: `Error: ${e.message}` }] };
+      } catch (e: unknown) {
+        return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }] };
       }
     }
   );
 
   server.tool(
     "traceback_create_ticket",
-    "Create a new ticket in a project. Placed in 'MCP Tasks / Inbox' epic+feature automatically.",
+    "Create a new changelog feature in a project.",
     {
       project_id: z.string().describe("Project ID"),
-      title: z.string().describe("Ticket title"),
-      description: z.string().optional().describe("Markdown description"),
-      status: z.enum(["backlog", "todo", "in-progress", "in-review", "done", "cancelled"]).optional(),
-      delegate_id: z.string().optional().describe("Agent ID to assign immediately"),
+      title: z.string().describe("Feature title"),
+      summary: z.string().optional().describe("Short summary"),
+      type: z.enum(["feature", "bugfix", "task"]).optional(),
+      status: z.enum(["planned", "in-progress", "completed"]).optional(),
     },
-    async ({ project_id, title, description, status, delegate_id }) => {
+    async ({ project_id, title, summary, type, status }) => {
       try {
-        const featureId = await getOrCreateMcpFeature(project_id);
-        const taskCount = await db.task.count({ where: { featureId } });
-        const task = await db.task.create({
+        const id = `feat-${Date.now()}-ui`;
+        const feature = await db.changelogFeature.create({
           data: {
-            featureId,
+            id,
+            projectId: project_id,
+            type: (type?.toUpperCase() ?? "FEATURE") as ChangelogItemType,
+            status: status ? toDbStatus(status) : "PLANNED",
+            priority: "MEDIUM",
             title,
-            instruction: description ?? null,
-            status: status ? toDbStatus(status) : "TODO",
-            order: taskCount,
-            number: taskCount + 1,
-            delegateId: delegate_id ?? null,
-            delegateStatus: delegate_id ? "WORKING" : null,
+            summary: summary ?? title,
+            affectedComponents: [],
+            acceptanceCriteria: [],
+            tags: [],
+            source: "UI",
           },
         });
-        return { content: [{ type: "text", text: JSON.stringify(serializeTask(task), null, 2) }] };
-      } catch (e: any) {
-        return { content: [{ type: "text", text: `Error: ${e.message}` }] };
+        return { content: [{ type: "text", text: JSON.stringify(serializeFeature(feature), null, 2) }] };
+      } catch (e: unknown) {
+        return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }] };
       }
     }
   );
 
   server.tool(
     "traceback_update_ticket",
-    "Update ticket fields: status, assignee, delegate, or instruction.",
+    "Update a changelog feature's status or other fields.",
     {
-      ticket_id: z.string().describe("Task ID"),
-      status: z.enum(["backlog", "todo", "in-progress", "in-review", "done", "cancelled"]).optional(),
-      assignee_id: z.string().optional().describe("New assignee, empty string to unassign"),
-      delegate_id: z.string().optional().describe("New agent delegate, empty string to remove"),
-      delegate_status: z.enum(["idle", "working", "completed", "error"]).optional(),
-      description: z.string().optional().describe("Updated instruction"),
+      ticket_id: z.string().describe("ChangelogFeature ID"),
+      status: z.enum(["planned", "in-progress", "completed"]).optional(),
+      title: z.string().optional(),
+      summary: z.string().optional(),
     },
-    async ({ ticket_id, status, assignee_id, delegate_id, delegate_status, description }) => {
+    async ({ ticket_id, status, title, summary }) => {
       try {
-        const updates: Record<string, any> = {};
+        const updates: Record<string, unknown> = {};
         if (status !== undefined) updates.status = toDbStatus(status);
-        if (assignee_id !== undefined) updates.assignee = assignee_id || null;
-        if (delegate_id !== undefined) {
-          updates.delegateId = delegate_id || null;
-          if (!delegate_id) updates.delegateStatus = null;
-        }
-        if (delegate_status !== undefined) updates.delegateStatus = delegate_status.toUpperCase();
-        if (description !== undefined) updates.instruction = description;
+        if (title !== undefined) updates.title = title;
+        if (summary !== undefined) updates.summary = summary;
 
-        const task = await db.task.update({ where: { id: ticket_id }, data: updates });
-        return { content: [{ type: "text", text: JSON.stringify(serializeTask(task), null, 2) }] };
-      } catch (e: any) {
-        return { content: [{ type: "text", text: `Error: ${e.message}` }] };
+        const feature = await db.changelogFeature.update({
+          where: { id: ticket_id },
+          data: updates,
+        });
+        return { content: [{ type: "text", text: JSON.stringify(serializeFeature(feature), null, 2) }] };
+      } catch (e: unknown) {
+        return { content: [{ type: "text", text: `Error: ${(e as Error).message}` }] };
       }
     }
   );
