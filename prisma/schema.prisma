@@ -82,11 +82,11 @@ model Project {
   webhookSecret        String
   defaultBranch        String  @default("main")
 
-  members     ProjectMember[]
-  invitations ProjectInvitation[]
-  epics       Epic[]
-  commits     Commit[]
-  apiKeys     ApiKey[]
+  members           ProjectMember[]
+  invitations       ProjectInvitation[]
+  commits           Commit[]
+  apiKeys           ApiKey[]
+  changelogFeatures ChangelogFeature[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,116 +132,6 @@ enum InvitationStatus {
   ACCEPTED
   EXPIRED
   REVOKED
-}
-
-// ─── TICKET HIERARCHY ────────────────────────────────────────────────────────
-
-model Epic {
-  id          String       @id @default(cuid())
-  projectId   String
-  title       String
-  description String?      @db.Text
-  status      TicketStatus @default(BACKLOG)
-  order       Int          @default(0)
-
-  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  features Feature[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Feature {
-  id                 String       @id @default(cuid())
-  epicId             String
-  title              String
-  description        String?      @db.Text
-  status             TicketStatus @default(BACKLOG)
-  assignee           String?
-  acceptanceCriteria Json?
-  contextFiles       Json?
-  changedFiles       Json?
-  diffRef            String?
-  diffSummary        String?      @db.Text
-  changedBy          String?
-  changedAt          DateTime?
-  order              Int          @default(0)
-
-  epic  Epic   @relation(fields: [epicId], references: [id], onDelete: Cascade)
-  tasks Task[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Task {
-  id           String       @id @default(cuid())
-  number       Int          @default(0)
-  featureId    String
-  title        String
-  instruction  String?      @db.Text
-  assignee     String?
-  status       TicketStatus @default(BACKLOG)
-  contextFiles Json?
-  changedFiles Json?
-  diffRef      String?
-  prUrl          String?
-  delegateId     String?
-  delegateStatus DelegateStatus?
-  changedBy      String?
-  changedAt      DateTime?
-  order          Int          @default(0)
-
-  feature      Feature       @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  delegate     Agent?        @relation("TaskDelegate", fields: [delegateId], references: [id])
-  sessionSteps SessionStep[]
-  linkedPrs    LinkedPR[]
-  comments     TaskComment[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-enum TicketStatus {
-  BACKLOG
-  TODO
-  IN_PROGRESS
-  IN_REVIEW
-  DONE
-  CANCELLED
-}
-
-enum DelegateStatus {
-  IDLE
-  WORKING
-  COMPLETED
-  ERROR
-}
-
-enum SessionStepType {
-  THINKING
-  REASONING
-  ACTION
-  CODE
-  RESULT
-  ERROR
-}
-
-enum LinkType {
-  PR
-  BRANCH
-  COMMIT
-}
-
-enum PRStatus {
-  OPEN
-  MERGED
-  CLOSED
-}
-
-enum AuthorType {
-  HUMAN
-  AGENT
 }
 
 // ─── GIT ─────────────────────────────────────────────────────────────────────
@@ -292,13 +182,12 @@ model Agent {
   guidance     String?  @db.Text
   createdAt    DateTime @default(now())
 
-  sessionSteps   SessionStep[]
-  delegatedTasks Task[]        @relation("TaskDelegate")
+  sessionSteps SessionStep[]
 }
 
 model SessionStep {
   id        String          @id @default(cuid())
-  ticketId  String
+  featureId String
   agentId   String
   sequence  Int
   type      SessionStepType
@@ -306,36 +195,180 @@ model SessionStep {
   metadata  Json            @default("{}")
   createdAt DateTime        @default(now())
 
-  task  Task  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  agent Agent @relation(fields: [agentId], references: [id])
+  feature ChangelogFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  agent   Agent            @relation(fields: [agentId], references: [id])
 
-  @@index([ticketId, sequence])
+  @@index([featureId, sequence])
   @@index([agentId])
 }
 
 model LinkedPR {
   id        String   @id @default(cuid())
-  ticketId  String
+  featureId String
   url       String
   type      LinkType @default(PR)
   title     String?
   status    PRStatus @default(OPEN)
   createdAt DateTime @default(now())
 
-  task Task @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  feature ChangelogFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
 
-  @@index([ticketId])
+  @@index([featureId])
 }
 
-model TaskComment {
-  id         String     @id @default(cuid())
-  ticketId   String
-  content    String     @db.Text
-  authorType AuthorType @default(AGENT)
-  authorId   String
-  createdAt  DateTime   @default(now())
+// ─── ENUMS ───────────────────────────────────────────────────────────────────
 
-  task Task @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+enum SessionStepType {
+  THINKING
+  REASONING
+  ACTION
+  CODE
+  RESULT
+  ERROR
+}
 
-  @@index([ticketId])
+enum LinkType {
+  PR
+  BRANCH
+  COMMIT
+}
+
+enum PRStatus {
+  OPEN
+  MERGED
+  CLOSED
+}
+
+enum AuthorType {
+  HUMAN
+  AGENT
+}
+
+enum ChangelogItemType {
+  FEATURE
+  BUGFIX
+  EPIC
+  TASK
+}
+
+enum ChangelogStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ChangelogPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ChangelogSource {
+  CHANGELOG
+  UI
+}
+
+enum ChangelogAgentType {
+  FRONTEND
+  BACKEND
+  QA
+  DEVOPS
+  FULLSTACK
+  ARCHITEKT
+  PROJEKTLEITER
+  DOKUMENTATION
+  SECURITY
+  HUMAN
+}
+
+enum ChangelogAction {
+  CREATED
+  MODIFIED
+  FIXED
+  PLANNED
+}
+
+enum CodeChangeType {
+  ADDED
+  MODIFIED
+  REMOVED
+}
+
+// ─── CHANGELOG ───────────────────────────────────────────────────────────────
+
+model ChangelogFeature {
+  id                 String            @id
+  projectId          String
+  parentId           String?
+  type               ChangelogItemType
+  status             ChangelogStatus
+  priority           ChangelogPriority
+  title              String
+  summary            String            @db.Text
+  businessContext    String?           @db.Text
+  rootCause          String?           @db.Text
+  impact             String?           @db.Text
+  resolution         String?           @db.Text
+  regressionRisk     String?           @db.Text
+  affectedComponents String[]
+  affectedUsers      String?           @db.Text
+  acceptanceCriteria String[]
+  tags               String[]
+  source             ChangelogSource   @default(CHANGELOG)
+  sourceFile         String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent       ChangelogFeature?    @relation("FeatureHierarchy", fields: [parentId], references: [id])
+  children     ChangelogFeature[]   @relation("FeatureHierarchy")
+  entries      ChangelogEntry[]
+  sessionSteps SessionStep[]
+  linkedPrs    LinkedPR[]
+
+  @@index([projectId])
+  @@index([parentId])
+  @@index([type])
+  @@index([status])
+}
+
+model ChangelogEntry {
+  id               String             @id
+  featureId        String
+  timestamp        DateTime
+  agentType        ChangelogAgentType
+  agentName        String
+  action           ChangelogAction
+  summary          String             @db.Text
+  what             String?            @db.Text
+  why              String?            @db.Text
+  technicalDetails String?            @db.Text
+  sideEffects      String?            @db.Text
+  dependencies     String[]
+  relatedEntryIds  String[]
+  linesAdded       Int                @default(0)
+  linesRemoved     Int                @default(0)
+  createdAt        DateTime           @default(now())
+
+  feature     ChangelogFeature @relation(fields: [featureId], references: [id], onDelete: Cascade)
+  codeChanges CodeChange[]
+
+  @@index([featureId])
+  @@index([timestamp])
+  @@index([agentType])
+}
+
+model CodeChange {
+  id           String         @id @default(cuid())
+  entryId      String
+  file         String
+  changeType   CodeChangeType
+  linesAdded   Int            @default(0)
+  linesRemoved Int            @default(0)
+  diffSummary  String?        @db.Text
+
+  entry ChangelogEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@index([entryId])
+  @@index([file])
 }
