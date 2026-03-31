@@ -1,0 +1,229 @@
+_machine_ref: "machine/features/mcp-extension-foundation.json"
+
+meta:
+  id: "feat-20260330-001"
+  title: "MCP Extension — Foundation (Dependencies + Schema + Seed)"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-30T00:00:00Z"
+  updated_at: "2026-03-30T12:00:00Z"
+  ticket_id: ""
+  tags:
+    - mcp
+    - agents
+    - prisma
+    - schema
+    - database
+
+  description:
+    summary: >
+      Foundation für die Traceback MCP Extension: MCP SDK installiert,
+      Prisma-Schema um Agent/SessionStep/LinkedPR/TaskComment erweitert,
+      neue Enums hinzugefügt, Task-Model um Delegate-Felder ergänzt
+      und drei initiale Agents (Claude Code, Devin, Cursor Agent) geseeded.
+    business_context: >
+      AI-Agents (Claude Code, Devin, Cursor) sollen direkt Tasks aus Traceback
+      empfangen, bearbeiten und ihren Fortschritt zurückmelden können.
+      Dafür braucht das Datenmodell eine Agent-Entität, Session-Steps für
+      den Fortschritt und LinkedPRs für die Verknüpfung mit Git.
+    affected_components:
+      - "prisma/schema.prisma"
+      - "prisma/seed-agents.ts"
+      - "package.json"
+      - "package-lock.json"
+    affected_users: >
+      Interne Entwickler und AI-Agents, die Tasks delegiert bekommen.
+      Keine Endnutzer-Auswirkung in dieser Phase.
+    acceptance_criteria:
+      - "@modelcontextprotocol/sdk@1.29.0 ist installiert"
+      - "zod@^4 ist installiert"
+      - "Agent, SessionStep, LinkedPR, TaskComment Models existieren in DB"
+      - "DelegateStatus, SessionStepType, LinkType, PRStatus, AuthorType Enums existieren"
+      - "Task hat delegateId und delegateStatus Felder"
+      - "3 initiale Agents sind geseeded (claude-code, devin, cursor-agent)"
+      - "npx tsc --noEmit fehlerfrei"
+
+entries:
+  - id: "entry-20260330-000000-be01"
+    timestamp: "2026-03-30T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "MCP SDK + zod installiert, Prisma-Schema erweitert, DB gepusht, Agents geseeded"
+    description:
+      what: >
+        Vier Aufgaben in einem Commit abgeschlossen:
+        (1) @modelcontextprotocol/sdk@1.29.0 und zod@^4 installiert.
+        (2) Prisma-Schema um 5 neue Enums, 4 neue Models und 2 neue Task-Felder erweitert.
+        (3) Schema per prisma db push in die Supabase-DB gepusht (kein migrate dev, da keine
+        Migration-History vorhanden war — DB war per db push aufgebaut).
+        (4) seed-agents.ts erstellt und 3 Agents per upsert geseeded.
+      why: >
+        Das MCP SDK ist die Basis für den MCP-Server, der AI-Agents mit Traceback verbindet.
+        Das Prisma-Schema musste erweitert werden, um Agent-Identitäten, Task-Delegierung,
+        Session-Fortschritt (Steps), verknüpfte PRs und Task-Kommentare speichern zu können.
+        Zod v4 wird für Input-Validierung in den MCP-Tool-Definitionen benötigt.
+      technical_details: >
+        StreamableHTTPServerTransport aus @modelcontextprotocol/sdk exportiert die Klasse
+        mit handleRequest(req: IncomingMessage & { auth?: AuthInfo }, res: ServerResponse,
+        parsedBody?: unknown): Promise<void> — unterstützt sowohl Stateful (sessionIdGenerator)
+        als auch Stateless-Modus.
+        Schema-Erweiterungen: DelegateStatus (IDLE/WORKING/COMPLETED/ERROR),
+        SessionStepType (THINKING/REASONING/ACTION/CODE/RESULT/ERROR), LinkType (PR/BRANCH/COMMIT),
+        PRStatus (OPEN/MERGED/CLOSED), AuthorType (HUMAN/AGENT).
+        Agent-Model hat keine @default(cuid()) für id — ID wird von außen gesetzt (z.B. "claude-code").
+        SessionStep hat compound-Index auf [ticketId, sequence] für effiziente Timeline-Queries.
+        prisma db push wurde statt migrate dev verwendet, da keine Migration-History existierte
+        und der Prisma drift-Check einen Reset anforderte.
+      side_effects: >
+        63 neue npm-Pakete hinzugefügt. Prisma Client wurde neu generiert (v6.19.2).
+        Task-Tabelle hat neue Spalten delegateId (nullable FK) und delegateStatus (nullable Enum).
+        4 neue DB-Tabellen: Agent, SessionStep, LinkedPR, TaskComment.
+        5 neue PostgreSQL-Enums in der DB.
+    code_changes:
+      - file: "prisma/schema.prisma"
+        change_type: "modified"
+        lines_added: 95
+        lines_removed: 0
+        diff_summary: "5 neue Enums, 4 neue Models (Agent/SessionStep/LinkedPR/TaskComment), Task um delegateId/delegateStatus/Relations erweitert"
+      - file: "prisma/seed-agents.ts"
+        change_type: "added"
+        lines_added: 37
+        lines_removed: 0
+        diff_summary: "Seed-Script für initiale Agents (claude-code, devin, cursor-agent)"
+      - file: "package.json"
+        change_type: "modified"
+        lines_added: 2
+        lines_removed: 0
+        diff_summary: "@modelcontextprotocol/sdk@1.29.0 und zod@^4 als dependencies eingetragen"
+      - file: "package-lock.json"
+        change_type: "modified"
+        lines_added: 890
+        lines_removed: 35
+        diff_summary: "63 neue Pakete (MCP SDK + transitive Dependencies + zod v4)"
+    dependencies:
+      - "@modelcontextprotocol/sdk@1.29.0"
+      - "zod@^4"
+    related_entries: []
+
+  - id: "entry-20260330-120000-be02"
+    timestamp: "2026-03-30T12:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "MCP Server (8 Tools) + REST API Endpoints für Session/Delegation/LinkedPRs implementiert"
+    description:
+      what: >
+        Tasks 5–17 vollständig implementiert:
+        (5) types/agents.ts — serialisierte TypeScript-Typen für Agent, SessionStep, LinkedPR, TaskComment.
+        (6) lib/db/agents.ts — getAgents() / getAgent() DB-Hilfsfunktionen.
+        (7) lib/db/session-steps.ts — createSessionStep() mit Auto-Sequence und getSessionSteps() mit Filter.
+        (8) lib/db/linked-prs.ts — createLinkedPR() und getLinkedPRs().
+        (9) WebStandardStreamableHTTPServerTransport API untersucht: handleRequest(req: Request): Promise<Response>.
+        (10) lib/mcp/server.ts — createTracebackMcpServer() registriert alle 4 Tool-Gruppen.
+        (11) lib/mcp/tools/tickets.ts — 4 Tools: list, get, create, update.
+        (12) lib/mcp/tools/sessions.ts — 2 Tools: log_session_step, get_session.
+        (13) lib/mcp/tools/links.ts + comments.ts — je 1 Tool: link_pr, add_comment.
+        (14) app/api/mcp/route.ts — WebStandard HTTP Transport als Next.js Route Handler.
+        (15) app/api/agents/route.ts — GET-Endpoint für Agent-Liste (API-Key + Session-Auth).
+        (16) app/api/tasks/[taskId]/session/route.ts — GET/POST für Session-Steps.
+        (17) app/api/tasks/[taskId]/delegate/route.ts — POST/DELETE Delegation.
+             app/api/tasks/[taskId]/linked-prs/route.ts — GET/POST Linked PRs.
+      why: >
+        Der MCP Server macht Traceback zu einem vollwertigen MCP-Host: Claude Code und andere
+        AI-Agents können Tickets lesen, erstellen und updaten, ihre Session-Steps loggen
+        (für vollständige Transparenz), PRs verknüpfen und Kommentare hinterlassen — alles
+        direkt aus dem Agent-Kontext heraus ohne Browser-Zugriff. Die REST-Endpoints ergänzen
+        den MCP-Kanal für Integrationen die kein MCP nutzen.
+      technical_details: >
+        WebStandardStreamableHTTPServerTransport (stateless, sessionIdGenerator: undefined)
+        über handleRequest(req: Request): Promise<Response> eingebunden — passt direkt zu
+        Next.js App Router Route Handlers die Web-Standard Request/Response nutzen.
+        MCP-Tools nutzen Zod v4 für Input-Validierung. Alle Tools sind error-resilient
+        (try/catch gibt text-Content zurück). traceback_create_ticket legt automatisch
+        ein "MCP Tasks / Inbox" Epic+Feature an falls keines existiert.
+        traceback_log_session_step setzt automatisch delegateId="claude-code" und
+        delegateStatus="WORKING" wenn noch kein Delegate gesetzt ist.
+        Session-Steps haben Auto-Sequence per findFirst(orderBy: sequence desc).
+        Alle REST Endpoints prüfen Auth via resolveAuth() mit API-Key + Session-Fallback.
+        npx tsc --noEmit: 0 Fehler.
+      side_effects: >
+        Neuer Endpoint POST /api/mcp (MCP Protocol, Bearer Auth erforderlich).
+        Neuer Endpoint GET /api/agents (öffentlich mit Auth).
+        3 neue Endpoint-Gruppen unter /api/tasks/[taskId]/: session, delegate, linked-prs.
+        lib/mcp/ und lib/db/ Verzeichnisse neu angelegt (waren vorher nicht vorhanden).
+    code_changes:
+      - file: "types/agents.ts"
+        change_type: "added"
+        lines_added: 62
+        lines_removed: 0
+        diff_summary: "Serialisierte TS-Typen: Agent, SessionStep, LinkedPR, TaskComment + zugehörige Enums"
+      - file: "lib/db/agents.ts"
+        change_type: "added"
+        lines_added: 10
+        lines_removed: 0
+        diff_summary: "getAgents() + getAgent() — Prisma-Queries mit orderBy name"
+      - file: "lib/db/session-steps.ts"
+        change_type: "added"
+        lines_added: 40
+        lines_removed: 0
+        diff_summary: "createSessionStep() mit Auto-Sequence, getSessionSteps() mit type/since-Filter"
+      - file: "lib/db/linked-prs.ts"
+        change_type: "added"
+        lines_added: 22
+        lines_removed: 0
+        diff_summary: "createLinkedPR() + getLinkedPRs() mit orderBy createdAt"
+      - file: "lib/mcp/server.ts"
+        change_type: "added"
+        lines_added: 22
+        lines_removed: 0
+        diff_summary: "createTracebackMcpServer() Factory — McpServer-Instanz mit allen 4 Tool-Gruppen"
+      - file: "lib/mcp/tools/tickets.ts"
+        change_type: "added"
+        lines_added: 145
+        lines_removed: 0
+        diff_summary: "4 MCP-Tools: traceback_list_tickets, get, create, update — mit Status-Konvertierung und Auto-Epic"
+      - file: "lib/mcp/tools/sessions.ts"
+        change_type: "added"
+        lines_added: 65
+        lines_removed: 0
+        diff_summary: "2 MCP-Tools: traceback_log_session_step (mit Auto-Delegate) und traceback_get_session"
+      - file: "lib/mcp/tools/links.ts"
+        change_type: "added"
+        lines_added: 28
+        lines_removed: 0
+        diff_summary: "1 MCP-Tool: traceback_link_pr — verknüpft PR/Branch/Commit mit Ticket"
+      - file: "lib/mcp/tools/comments.ts"
+        change_type: "added"
+        lines_added: 28
+        lines_removed: 0
+        diff_summary: "1 MCP-Tool: traceback_add_comment — Markdown-Kommentar als AGENT oder HUMAN"
+      - file: "app/api/mcp/route.ts"
+        change_type: "added"
+        lines_added: 30
+        lines_removed: 0
+        diff_summary: "POST /api/mcp: WebStandardStreamableHTTPServerTransport + createTracebackMcpServer. GET: Serverinfo"
+      - file: "app/api/agents/route.ts"
+        change_type: "added"
+        lines_added: 16
+        lines_removed: 0
+        diff_summary: "GET /api/agents: Agent-Liste, beide Auth-Methoden (API-Key + Session)"
+      - file: "app/api/tasks/[taskId]/session/route.ts"
+        change_type: "added"
+        lines_added: 57
+        lines_removed: 0
+        diff_summary: "GET + POST /api/tasks/[taskId]/session: Session-Step-Log lesen und anhängen"
+      - file: "app/api/tasks/[taskId]/delegate/route.ts"
+        change_type: "added"
+        lines_added: 50
+        lines_removed: 0
+        diff_summary: "POST + DELETE /api/tasks/[taskId]/delegate: Delegation setzen und entfernen"
+      - file: "app/api/tasks/[taskId]/linked-prs/route.ts"
+        change_type: "added"
+        lines_added: 57
+        lines_removed: 0
+        diff_summary: "GET + POST /api/tasks/[taskId]/linked-prs: Linked PRs lesen und anlegen"
+    dependencies: []
+    related_entries:
+      - "entry-20260330-000000-be01"

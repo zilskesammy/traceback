@@ -1,0 +1,148 @@
+_machine_ref: "machine/features/changelog-sync-read-api.json"
+
+meta:
+  id: "feat-20260331-001"
+  title: "Changelog Sync + Read API Endpoints"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-31T13:00:00Z"
+  updated_at: "2026-03-31T13:00:00Z"
+  ticket_id: ""
+  tags:
+    - api
+    - changelog
+    - github
+    - sync
+
+  description:
+    summary: >
+      Three Next.js App Router route handlers added to expose the changelog
+      data model via HTTP: a sync endpoint that pulls parsed CHANGELOG.md data
+      from GitHub and persists it, a list endpoint for filtered feature
+      queries, and a detail endpoint for individual feature + entry + code-change
+      retrieval.
+    business_context: >
+      The changelog data model (ChangelogFeature / ChangelogEntry / CodeChange)
+      was built in previous tasks but had no HTTP surface. Without these
+      endpoints the sync pipeline and any UI or external consumer cannot
+      interact with the data. These routes close that gap.
+    affected_components:
+      - "app/api/projects/[id]/changelog/sync/route.ts"
+      - "app/api/projects/[id]/changelog/route.ts"
+      - "app/api/projects/[id]/changelog/[featureId]/route.ts"
+    affected_users: "All API consumers and UI layers that interact with changelog data"
+    acceptance_criteria:
+      - "POST /api/projects/:id/changelog/sync fetches and upserts features from GitHub"
+      - "GET /api/projects/:id/changelog returns paginated, filterable feature list"
+      - "GET /api/projects/:id/changelog/:featureId returns feature with nested entries and code changes"
+      - "All three routes enforce auth via resolveAuth"
+      - "TypeScript reports no errors in the new route files"
+
+entries:
+  - id: "entry-20260331-130000-be01"
+    timestamp: "2026-03-31T13:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Sync endpoint POST /api/projects/[id]/changelog/sync created"
+    description:
+      what: >
+        Created app/api/projects/[id]/changelog/sync/route.ts. The handler
+        resolves auth via resolveAuth, loads project.repoOwner / repoName /
+        defaultBranch, calls fetchChangelogFromGitHub, then loops over parsed
+        features calling upsertChangelogFeature for each. Returns
+        {ok, synced, total} on success and a 500 with the error message on
+        failure.
+      why: >
+        The GitHub parser and DB upsert helpers were already implemented. A
+        dedicated POST endpoint is the standard trigger surface for sync
+        operations — callable by scheduled jobs, webhooks, or manual UI actions.
+      technical_details: >
+        Uses Next.js App Router Promise<{ id }> params pattern. Error is caught
+        at the top level with instanceof Error guard to avoid leaking non-Error
+        throws. Console.error with "[changelog-sync]" prefix for easy log
+        filtering. Project lookup selects only the three repo fields to
+        minimise data transfer.
+      side_effects: >
+        New route registered at POST /api/projects/[id]/changelog/sync.
+        Depends on fetchChangelogFromGitHub (lib/changelog/parser.ts) and
+        upsertChangelogFeature (lib/db/changelog.ts) — both must exist and be
+        correct for sync to work.
+    code_changes:
+      - file: "app/api/projects/[id]/changelog/sync/route.ts"
+        change_type: "added"
+        lines_added: 47
+        lines_removed: 0
+        diff_summary: "New POST handler for changelog sync from GitHub"
+    dependencies: []
+    related_entries: []
+
+  - id: "entry-20260331-130100-be02"
+    timestamp: "2026-03-31T13:01:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "List endpoint GET /api/projects/[id]/changelog created"
+    description:
+      what: >
+        Created app/api/projects/[id]/changelog/route.ts. Parses query params
+        type, status, priority, tags (comma-separated), limit (default 50),
+        offset (default 0) and delegates to listChangelogFeatures with a
+        spread-conditional filter object.
+      why: >
+        Consumer UIs and external tools need a filterable, paginated list view
+        of changelog features. Delegating filter logic entirely to
+        listChangelogFeatures keeps the route thin and the DB layer testable
+        independently.
+      technical_details: >
+        Query param casting uses TypeScript `as` assertions for the enum types —
+        acceptable since Prisma/DB will reject invalid enum values at query time.
+        Pagination via limit/offset (not cursor) matches the existing API style
+        across the codebase. Tags split on "," with .filter(Boolean) to handle
+        trailing commas.
+      side_effects: >
+        New route registered at GET /api/projects/[id]/changelog.
+    code_changes:
+      - file: "app/api/projects/[id]/changelog/route.ts"
+        change_type: "added"
+        lines_added: 48
+        lines_removed: 0
+        diff_summary: "New GET handler for paginated filtered changelog feature list"
+    dependencies: []
+    related_entries:
+      - "entry-20260331-130000-be01"
+
+  - id: "entry-20260331-130200-be03"
+    timestamp: "2026-03-31T13:02:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Detail endpoint GET /api/projects/[id]/changelog/[featureId] created"
+    description:
+      what: >
+        Created app/api/projects/[id]/changelog/[featureId]/route.ts. Resolves
+        auth, calls getChangelogFeature(featureId), and validates the returned
+        feature belongs to the requested projectId before returning it.
+      why: >
+        The detail view must include nested entries and their code changes — a
+        single getChangelogFeature call returns the full hydrated tree via
+        Prisma include. The projectId cross-check prevents data leakage between
+        projects even when a valid featureId from another project is supplied.
+      technical_details: >
+        No db.project lookup needed — the ownership check is done by comparing
+        feature.projectId against the route param, keeping the handler to a
+        single DB round-trip. The 404 response covers both "feature not found"
+        and "feature belongs to different project" to avoid information leakage.
+      side_effects: >
+        New route registered at GET /api/projects/[id]/changelog/[featureId].
+    code_changes:
+      - file: "app/api/projects/[id]/changelog/[featureId]/route.ts"
+        change_type: "added"
+        lines_added: 27
+        lines_removed: 0
+        diff_summary: "New GET handler for single changelog feature with entries and code changes"
+    dependencies: []
+    related_entries:
+      - "entry-20260331-130000-be01"
+      - "entry-20260331-130100-be02"

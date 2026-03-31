@@ -1,0 +1,23 @@
+{
+  "id": "fix-20260327-001",
+  "title": "x-api-key Requests durch Middleware blockiert",
+  "category": "bugfix",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-27T09:13:17Z",
+  "updated_at": "2026-03-27T09:13:17Z",
+  "ticket_id": "",
+  "tags": ["middleware", "auth", "api-key", "agents"],
+  "summary": "API-Agent-Requests mit x-api-key Header wurden von Middleware blockiert bevor sie den Route-Handler erreichten.",
+  "business_context": null,
+  "affected_components": ["proxy.ts"],
+  "affected_users": "AI-Agenten und Tools die x-api-key für API-Zugriff nutzen",
+  "acceptance_criteria": null,
+  "root_cause": "Middleware prüfte Session-Auth für alle Requests ohne Ausnahme für x-api-key Header. API-Agents ohne Session-Cookie wurden mit 401/302 abgewiesen.",
+  "impact": "Alle programmatischen API-Zugriffe via x-api-key waren nicht funktionsfähig — 100% der Agent-Requests.",
+  "resolution": "proxy.ts: Requests mit x-api-key Header bypassen die Session-Prüfung. Route-Handler validieren den Key selbst.",
+  "regression_risk": "Gering. Änderung isoliert in proxy.ts, nur Bypass-Pfad betroffen. Session-Auth für normale Nutzer unverändert.",
+  "entries_count": 1,
+  "entries": ["entry-20260327-091317-be01"],
+  "_source_yaml": "human/bugfixes/middleware-api-key.yaml"
+}

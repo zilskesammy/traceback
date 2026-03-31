@@ -1,0 +1,37 @@
+{
+  "id": "feat-20260331-001",
+  "title": "Changelog Sync + Read API Endpoints",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-31T13:00:00Z",
+  "updated_at": "2026-03-31T13:02:00Z",
+  "ticket_id": "",
+  "tags": ["api", "changelog", "github", "sync"],
+  "summary": "Three Next.js App Router route handlers added to expose the changelog data model via HTTP: a sync endpoint that pulls parsed CHANGELOG.md data from GitHub and persists it, a list endpoint for filtered feature queries, and a detail endpoint for individual feature + entry + code-change retrieval.",
+  "business_context": "The changelog data model was built in previous tasks but had no HTTP surface. Without these endpoints the sync pipeline and any UI or external consumer cannot interact with the data.",
+  "affected_components": [
+    "app/api/projects/[id]/changelog/sync/route.ts",
+    "app/api/projects/[id]/changelog/route.ts",
+    "app/api/projects/[id]/changelog/[featureId]/route.ts"
+  ],
+  "affected_users": "All API consumers and UI layers that interact with changelog data",
+  "acceptance_criteria": [
+    "POST /api/projects/:id/changelog/sync fetches and upserts features from GitHub",
+    "GET /api/projects/:id/changelog returns paginated, filterable feature list",
+    "GET /api/projects/:id/changelog/:featureId returns feature with nested entries and code changes",
+    "All three routes enforce auth via resolveAuth",
+    "TypeScript reports no errors in the new route files"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 3,
+  "entries": [
+    "entry-20260331-130000-be01",
+    "entry-20260331-130100-be02",
+    "entry-20260331-130200-be03"
+  ],
+  "_source_yaml": "human/features/changelog-sync-read-api.yaml"
+}

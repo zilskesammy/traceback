@@ -1,0 +1,156 @@
+_machine_ref: "machine/features/mcp-extension-frontend.json"
+
+meta:
+  id: "feat-20260330-002"
+  title: "MCP Extension — Frontend Components (SessionViewer, AgentBadge, AgentDelegation)"
+  category: "feature"
+  status: "in_progress"
+  priority: "high"
+  created_at: "2026-03-30T12:00:00Z"
+  updated_at: "2026-03-30T12:00:00Z"
+  ticket_id: "Tasks 18–22"
+  tags:
+    - mcp
+    - agents
+    - delegation
+    - session
+    - frontend
+
+  description:
+    summary: >
+      Fünf neue Tasks (18–22) für das MCP Extension Feature implementiert:
+      Typ-Updates, drei neue Komponenten (SessionViewer, AgentBadge, AgentDelegation)
+      sowie die Integration dieser Komponenten in TaskModal und FeatureCard.
+    business_context: >
+      AI-Agenten (claude-code, devin, cursor-agent) können jetzt einem Task zugewiesen
+      werden. Der Nutzer sieht den Agent-Status direkt in der Task-Liste (FeatureCard)
+      und kann im TaskModal den Agent wechseln sowie die vollständige Session-Timeline
+      (Reasoning, Code, Actions) einsehen.
+    affected_components:
+      - "types/planning.ts"
+      - "app/(app)/projects/[id]/page.tsx"
+      - "components/planning/SessionViewer.tsx"
+      - "components/planning/AgentBadge.tsx"
+      - "components/planning/AgentDelegation.tsx"
+      - "components/planning/modals/TaskModal.tsx"
+      - "components/planning/FeatureCard.tsx"
+    affected_users: "Alle Nutzer, die Tasks mit AI-Agenten delegieren"
+    acceptance_criteria:
+      - "PlanningTask Interface hat delegateId und delegateStatus"
+      - "serializeTask gibt delegateId und delegateStatus weiter"
+      - "SessionViewer zeigt Timeline von Agent-Steps mit Expand/Collapse"
+      - "AgentBadge zeigt Avatar + Statusdot mit Pulsanimation bei WORKING"
+      - "AgentDelegation erlaubt Assign/Change/Remove eines Agents via Dropdown"
+      - "TaskModal hat Details/Session-Trail-Tabs im Edit-Modus"
+      - "FeatureCard zeigt AgentBadge in Task-Zeilen wenn delegateId gesetzt"
+
+entries:
+  - id: "entry-20260330-120000-fe01"
+    timestamp: "2026-03-30T12:00:00Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Tasks 18–22: Typen, SessionViewer, AgentBadge, AgentDelegation, TaskModal- und FeatureCard-Integration"
+    description:
+      what: >
+        Task 18: PlanningTask Interface um delegateId (string|null) und delegateStatus
+        ("IDLE"|"WORKING"|"COMPLETED"|"ERROR"|null) erweitert. serializeTask() in
+        app/(app)/projects/[id]/page.tsx gibt beide Felder aus dem Prisma-Objekt weiter.
+
+        Task 19: SessionViewer.tsx als neue Client-Komponente erstellt. Fetcht
+        /api/tasks/{taskId}/session, zeigt chronologische Timeline von SessionSteps.
+        Jeder Step-Typ (THINKING, REASONING, ACTION, CODE, RESULT, ERROR) hat eigene
+        Farbe, Icon und Label. StepCard hat Expand/Collapse bei langen Inhalten.
+        Ab 8 Steps gibt es Collapse-All mit "N earlier steps hidden"-Hinweis.
+
+        Task 20: AgentBadge.tsx als neue Client-Komponente erstellt. Zeigt quadratischen
+        Avatar mit Initiale + Statusdot. WORKING-Status pulsiert via animate-pulse.
+        Zwei Größen: sm (20px) und md (28px, mit Agent-Name). Agent-Farben per ID
+        (claude-code=amber, devin=blue, cursor-agent=violet, Fallback=zinc).
+
+        Task 21: AgentDelegation.tsx als neue Client-Komponente erstellt. Fetcht
+        /api/agents für verfügbare Agents. POST /api/tasks/{id}/delegate zum Zuweisen,
+        DELETE zum Entfernen. Dropdown mit Agent-Name, Provider und bis zu 3 Capability-Tags.
+        Backdrop-Klick schließt Dropdown.
+
+        Task 22 (TaskModal): Drei neue Imports (SessionViewer, AgentDelegation, DelegateStatus).
+        Neuer activeTab State ("details"|"session"), reset auf "details" im useEffect.
+        Tab-Bar (Details / Session Trail) nur im Edit-Modus. AgentDelegation-Panel im
+        Details-Tab als eigenes Panel. Bestehende Formfelder in Fragment gewrappt mit
+        Bedingung (!isEditing || activeTab === "details"). SessionViewer im Session-Tab.
+
+        Task 22 (FeatureCard): AgentBadge und DelegateStatus importiert. In TaskRow
+        wird AgentBadge gerendert wenn task.delegateId gesetzt ist, direkt nach dem
+        Task-Titel und vor Assignee/Commit-Badge.
+      why: >
+        SessionViewer ist die zentrale UX-Komponente für Transparenz: Nutzer sehen
+        was der Agent denkt, plant und ausführt — nicht nur das Ergebnis. AgentBadge
+        hält den Status compact für die dichte Task-Liste. AgentDelegation kapselt
+        den kompletten Assign/Remove-Workflow ohne externe State-Management-Komplexität.
+        Die Tab-Struktur im TaskModal trennt Metadaten von der Session-History sauber,
+        verhindert Modal-Overflow und macht den Edit-Modus nicht lauter für
+        Create-Workflows.
+      technical_details: >
+        SessionViewer: fetch in useEffect mit taskId als Dependency. STEP_CONFIG Record
+        für typsichere Icon/Color/Label-Zuordnung. StepCard nutzt useState für
+        expanded-State, initialisiert auf step.type !== "THINKING" (THINKING standard
+        collapsed). CODE-Steps rendern in <pre> statt <p>.
+
+        AgentBadge: Rein deklarativ, kein State. STATUS_PULSE Record vermeidet if/else
+        für Pulsanimation. AGENT_COLOR Record mit Fallback via ?? Operator.
+
+        AgentDelegation: useEffect für agents-Fetch ohne Dependency (einmalig on mount).
+        assign() und remove() setzen loading direkt, rufen onChanged() nach Fetch.
+        Z-Index: Backdrop z-40, Dropdown z-50 für korrekte Stacking-Reihenfolge.
+
+        TaskModal: activeTab-Reset in useEffect (gleiche Dependency-Liste wie bisher).
+        Formfelder in <> Fragment gewrappt statt in zusätzlichem div — keine
+        Layout-Änderung. "Mit Claude implementieren"-Button bleibt im Actions-Bereich
+        außerhalb des Tab-Contents und ist immer sichtbar im Edit-Modus.
+
+        TypeScript: npx tsc --noEmit ohne Fehler. DelegateStatus type export aus
+        AgentBadge.tsx, import in AgentDelegation.tsx und TaskModal.tsx.
+      side_effects: >
+        Keine neuen npm-Dependencies. Bundle-Size-Impact minimal (5 neue Komponenten,
+        kein externe Lib). Beide REST-Endpoints (/api/agents, /api/tasks/{id}/delegate,
+        /api/tasks/{id}/session) werden von Backend-Agent parallel gebaut — Komponenten
+        fallen auf leere Arrays / leere Steps zurück (graceful degradation).
+    code_changes:
+      - file: "types/planning.ts"
+        change_type: "modified"
+        lines_added: 2
+        lines_removed: 0
+        diff_summary: "delegateId und delegateStatus zum PlanningTask Interface hinzugefügt"
+      - file: "app/(app)/projects/[id]/page.tsx"
+        change_type: "modified"
+        lines_added: 2
+        lines_removed: 0
+        diff_summary: "serializeTask gibt delegateId und delegateStatus weiter"
+      - file: "components/planning/SessionViewer.tsx"
+        change_type: "added"
+        lines_added: 148
+        lines_removed: 0
+        diff_summary: "Neue Komponente: Timeline von Agent-SessionSteps mit Expand/Collapse"
+      - file: "components/planning/AgentBadge.tsx"
+        change_type: "added"
+        lines_added: 52
+        lines_removed: 0
+        diff_summary: "Neue Komponente: kompakter Agent-Avatar mit Statusdot und Pulsanimation"
+      - file: "components/planning/AgentDelegation.tsx"
+        change_type: "added"
+        lines_added: 96
+        lines_removed: 0
+        diff_summary: "Neue Komponente: Assign/Remove Agent-Dropdown mit Capability-Tags"
+      - file: "components/planning/modals/TaskModal.tsx"
+        change_type: "modified"
+        lines_added: 62
+        lines_removed: 41
+        diff_summary: "Details/Session-Trail-Tabs, AgentDelegation-Panel, SessionViewer im Session-Tab"
+      - file: "components/planning/FeatureCard.tsx"
+        change_type: "modified"
+        lines_added: 13
+        lines_removed: 1
+        diff_summary: "AgentBadge-Import und Rendering in TaskRow wenn delegateId gesetzt"
+    dependencies: []
+    related_entries:
+      - "entry-20260330-000000-be01"

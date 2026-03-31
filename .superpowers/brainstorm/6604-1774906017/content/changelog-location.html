@@ -1,0 +1,73 @@
+<h2>Wo soll der Changelog im UI erscheinen?</h2>
+<p class="subtitle">Wähle den Ort — oder mehrere, falls du beides willst</p>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Eigener Tab im Projekt-Layout</h3>
+      <p>Changelog erscheint als neuer Tab neben <strong>Board · Kanban · Commits</strong> — globale Übersicht aller Features, Bugfixes und Entries für das Projekt.</p>
+      <div class="mockup" style="margin-top:10px">
+        <div class="mockup-header">Projekt-Navigation</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="display:flex;gap:0;border-bottom:1px solid #333">
+            <div style="padding:8px 14px;font-size:12px;color:#888">Board</div>
+            <div style="padding:8px 14px;font-size:12px;color:#888">Kanban</div>
+            <div style="padding:8px 14px;font-size:12px;color:#888">Commits</div>
+            <div style="padding:8px 14px;font-size:12px;color:#a78bfa;border-bottom:2px solid #a78bfa;margin-bottom:-1px;font-weight:600">Changelog</div>
+          </div>
+          <div style="padding:12px;font-size:11px;color:#888">
+            <div style="background:#1e1e2e;border-radius:6px;padding:8px;margin-bottom:6px;border-left:3px solid #10b981">
+              <span style="color:#10b981;font-weight:600">feat</span> · MCP Extension — Foundation <span style="color:#555;float:right">30 Mär</span>
+            </div>
+            <div style="background:#1e1e2e;border-radius:6px;padding:8px;margin-bottom:6px;border-left:3px solid #f59e0b">
+              <span style="color:#f59e0b;font-weight:600">fix</span> · x-api-key Middleware blockiert <span style="color:#555;float:right">27 Mär</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Tab im TaskModal</h3>
+      <p>Changelog-Einträge, die zu einem Task verknüpft sind (<code>ticket_id</code>), erscheinen als eigener Tab im Task-Modal — direkt neben "Details" und "Session Trail".</p>
+      <div class="mockup" style="margin-top:10px">
+        <div class="mockup-header">TaskModal — Tabs</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="display:flex;gap:0;border-bottom:1px solid #333">
+            <div style="padding:8px 14px;font-size:12px;color:#888">Details</div>
+            <div style="padding:8px 14px;font-size:12px;color:#888">Session Trail</div>
+            <div style="padding:8px 14px;font-size:12px;color:#a78bfa;border-bottom:2px solid #a78bfa;margin-bottom:-1px;font-weight:600">Changelog</div>
+          </div>
+          <div style="padding:12px;font-size:11px;color:#888">
+            <div style="background:#1e1e2e;border-radius:6px;padding:8px;border-left:3px solid #10b981">
+              <strong style="color:#ccc">FrontEnd · Claude</strong> — created<br>
+              <span style="color:#888">CommitsView-Komponente und Webhook-Handler implementiert</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Eigene Settings/Admin-Seite</h3>
+      <p>Changelog als Sub-Seite unter <strong>/projects/[id]/changelog</strong> — separates Admin-Panel, nicht im Haupt-Planungs-Flow. Übersicht + Filter + Detail-Ansicht.</p>
+      <div class="mockup" style="margin-top:10px">
+        <div class="mockup-header">Sidebar Navigation</div>
+        <div class="mockup-body" style="padding:0">
+          <div style="padding:8px 14px;font-size:12px;color:#888;border-bottom:1px solid #222">Planning</div>
+          <div style="padding:8px 14px;font-size:12px;color:#888;border-bottom:1px solid #222">Settings</div>
+          <div style="padding:8px 14px;font-size:12px;color:#a78bfa;font-weight:600;background:#1e1e2e">Changelog</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle" style="margin-top:16px">Mehrfachauswahl möglich — z.B. A + B für global + pro Task</p>

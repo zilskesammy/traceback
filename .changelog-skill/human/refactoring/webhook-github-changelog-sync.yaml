@@ -1,0 +1,96 @@
+_machine_ref: "machine/refactoring/webhook-github-changelog-sync.json"
+
+meta:
+  id: "refac-20260331-002"
+  title: "GitHub Webhook: Task-Logik entfernt, Changelog-Sync-Trigger hinzugefügt"
+  category: "refactoring"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-31T00:00:00Z"
+  updated_at: "2026-03-31T00:00:00Z"
+  ticket_id: ""
+  tags:
+    - webhook
+    - github
+    - changelog
+    - refactoring
+    - backend
+
+  description:
+    summary: >
+      app/api/webhook/github/route.ts wurde vollständig neu geschrieben.
+      Die alte Datei enthielt Epic/Feature/Task-Logik (handlePullRequest,
+      matchFilesToTickets, extractTaskIdFromBranch, updateTaskFromPR etc.).
+      Diese wurde vollständig entfernt und durch einen einfachen Push-Handler
+      ersetzt, der bei Änderungen in .agent-changelog/ einen Changelog-Sync
+      auslöst.
+    motivation: >
+      Das alte Datenmodell (Epic/Feature/Task) existiert nach Task 1 nicht mehr
+      in der Datenbank. Der Webhook muss die neue Realität widerspiegeln: statt
+      Tickets zu updaten synchronisiert er Changelog-Daten aus dem Repository.
+      Die Vereinfachung reduziert den Code von 376 auf ~125 Zeilen und entfernt
+      alle toten Code-Pfade.
+    breaking_changes: >
+      Breaking: pull_request Events werden nicht mehr verarbeitet (handlePullRequest
+      entfernt). Imports matchFilesToTickets und GitHubPullRequestPayload entfernt.
+      Das Projekt-Lookup liest jetzt zusätzlich defaultBranch aus der DB.
+      handlePush-Signatur geändert: nimmt jetzt defaultBranch, repoOwner, repoName
+      als zusätzliche Parameter.
+    affected_components:
+      - "app/api/webhook/github/route.ts"
+    affected_users: "GitHub Webhooks für alle konfigurierten Projekte"
+
+entries:
+  - id: "entry-20260331-000000-be03"
+    timestamp: "2026-03-31T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Webhook-Route vollständig neu geschrieben — Task-Logik raus, Changelog-Sync rein"
+    description:
+      what: >
+        app/api/webhook/github/route.ts komplett ersetzt:
+        (1) Imports matchFilesToTickets und GitHubPullRequestPayload entfernt.
+        (2) Imports fetchChangelogFromGitHub und upsertChangelogFeature hinzugefügt.
+        (3) handlePullRequest, extractTaskIdFromBranch, extractTaskNumbersFromMessage,
+            updateTaskFromPR, updateTaskByNumber — alle 5 Funktionen entfernt.
+        (4) handlePush neu geschrieben: prüft ob changedFiles .agent-changelog/ enthält,
+            ruft bei Treffern fetchChangelogFromGitHub + upsertChangelogFeature auf.
+        (5) Projekt-Lookup erweitert: liest jetzt auch defaultBranch aus der DB.
+        (6) switch-Case: pull_request-Case entfernt, nur push + ping bleiben.
+      why: >
+        Epic/Feature/Task-Modelle existieren nicht mehr in der DB (nach Task 1 Prisma-
+        Schema-Umbau). Der gesamte Task-Update-Code war toter Code. Der Webhook
+        muss auf das neue Datenmodell ausgerichtet werden: Agent-Aktivitäten werden
+        über das .agent-changelog/ Verzeichnis im Repo gepflegt und bei jedem Push
+        in die Datenbank synchronisiert. Das ist die Kernfunktion des Systems.
+      technical_details: >
+        hasChangelogChanges prüft mit changedFiles.some() ob eine geänderte Datei
+        mit ".agent-changelog/" beginnt. Nur dann wird fetchChangelogFromGitHub
+        aufgerufen (GitHub API + Parser). upsertChangelogFeature wird für jedes
+        Feature iteriert. Fehler beim Changelog-Sync werden geloggt aber nicht
+        re-geworfen — der Commit wird in jedem Fall gespeichert (Idempotenz).
+        branch || defaultBranch als Fallback stellt sicher dass auch bei
+        gelöschten Branches ein valider Branch-Name übergeben wird.
+      side_effects: >
+        pull_request Events vom GitHub Webhook werden ignoriert (kein 4xx —
+        unbekannte Events loggen und 200 zurückgeben). Projekte ohne defaultBranch
+        in der DB erhalten den Branch-Wert aus payload.ref als Fallback.
+        Imports für @/lib/webhook/matchFilesToTickets und GitHubPullRequestPayload
+        sind nicht mehr nötig.
+    code_changes:
+      - file: "app/api/webhook/github/route.ts"
+        change_type: "modified"
+        lines_added: 31
+        lines_removed: 275
+        diff_summary: >
+          Entfernt: handlePullRequest, extractTaskIdFromBranch,
+          extractTaskNumbersFromMessage, updateTaskFromPR, updateTaskByNumber
+          und alle zugehörigen DB-Queries auf Task-Modellen.
+          Geändert: handlePush (Changelog-Sync-Logik), project-Lookup
+          (defaultBranch hinzugefügt), switch-Case (pull_request entfernt).
+          Hinzugefügt: hasChangelogChanges-Check, fetchChangelogFromGitHub-
+          und upsertChangelogFeature-Aufrufe.
+    dependencies: []
+    related_entries:
+      - "entry-20260331-000000-be01"

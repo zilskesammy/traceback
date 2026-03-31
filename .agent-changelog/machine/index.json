@@ -1,0 +1,133 @@
+{
+  "project": "traceback",
+  "last_updated": "2026-03-31T10:30:00Z",
+  "total_entries": 14,
+  "total_files": 11,
+  "categories": {
+    "features": {
+      "count": 10,
+      "files": [
+        {
+          "id": "feat-20260326-001",
+          "path": "machine/features/docs-system.json",
+          "yaml_path": "human/features/docs-system.yaml",
+          "title": "Mintlify-Style Docs System",
+          "status": "completed",
+          "priority": "medium",
+          "entries_count": 1,
+          "last_entry": "2026-03-26T17:25:58Z"
+        },
+        {
+          "id": "feat-20260327-001",
+          "path": "machine/features/crud-modals.json",
+          "yaml_path": "human/features/crud-modals.yaml",
+          "title": "Epic/Feature/Task CRUD — UI Modals + API Routes",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-27T07:20:15Z"
+        },
+        {
+          "id": "feat-20260327-002",
+          "path": "machine/features/api-key-system.json",
+          "yaml_path": "human/features/api-key-system.yaml",
+          "title": "API-Key-System für AI-Agent-Zugriff",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-27T08:19:05Z"
+        },
+        {
+          "id": "feat-20260327-003",
+          "path": "machine/features/kanban-board.json",
+          "yaml_path": "human/features/kanban-board.yaml",
+          "title": "Kanban Board View mit Drag & Drop",
+          "status": "completed",
+          "priority": "medium",
+          "entries_count": 2,
+          "last_entry": "2026-03-27T08:49:02Z"
+        },
+        {
+          "id": "feat-20260327-004",
+          "path": "machine/features/ai-task-implementation.json",
+          "yaml_path": "human/features/ai-task-implementation.yaml",
+          "title": "KI-gestützte Task-Implementierung via Claude",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-27T10:23:35Z"
+        },
+        {
+          "id": "feat-20260327-005",
+          "path": "machine/features/task-status-click.json",
+          "yaml_path": "human/features/task-status-click.yaml",
+          "title": "Task-Status per Klick ändern (Inline-Dropdown)",
+          "status": "completed",
+          "priority": "medium",
+          "entries_count": 1,
+          "last_entry": "2026-03-27T10:29:35Z"
+        },
+        {
+          "id": "feat-20260327-006",
+          "path": "machine/features/github-integration.json",
+          "yaml_path": "human/features/github-integration.yaml",
+          "title": "GitHub-Integration — Webhooks, PR-Tracking, Commits-View, TB-Nummern",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 2,
+          "last_entry": "2026-03-27T13:14:45Z"
+        },
+        {
+          "id": "feat-20260330-001",
+          "path": "machine/features/mcp-extension-foundation.json",
+          "yaml_path": "human/features/mcp-extension-foundation.yaml",
+          "title": "MCP Extension — Foundation (Dependencies + Schema + Seed)",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 2,
+          "last_entry": "2026-03-30T12:00:00Z"
+        },
+        {
+          "id": "feat-20260330-002",
+          "path": "machine/features/mcp-extension-frontend.json",
+          "yaml_path": "human/features/mcp-extension-frontend.yaml",
+          "title": "MCP Extension — Frontend Components (SessionViewer, AgentBadge, AgentDelegation)",
+          "status": "in_progress",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-30T12:00:00Z"
+        },
+        {
+          "id": "feat-20260331-001",
+          "path": "machine/features/changelog-sync-parser.json",
+          "yaml_path": "human/features/changelog-sync-parser.yaml",
+          "title": "Changelog Sync — GitHub YAML Parser",
+          "status": "in_progress",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-31T10:30:00Z"
+        }
+      ]
+    },
+    "bugfixes": {
+      "count": 1,
+      "files": [
+        {
+          "id": "fix-20260327-001",
+          "path": "machine/bugfixes/middleware-api-key.json",
+          "yaml_path": "human/bugfixes/middleware-api-key.yaml",
+          "title": "x-api-key Requests durch Middleware blockiert",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-27T09:13:17Z"
+        }
+      ]
+    },
+    "testing": {"count": 0, "files": []},
+    "refactoring": {"count": 0, "files": []},
+    "infrastructure": {"count": 0, "files": []},
+    "documentation": {"count": 0, "files": []},
+    "configuration": {"count": 0, "files": []}
+  }
+}

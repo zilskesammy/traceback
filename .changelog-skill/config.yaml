@@ -1,0 +1,4 @@
+# Agent Changelog Konfiguration
+storage_path: "./.changelog-skill"
+max_entries_per_file: 50
+project_name: "traceback"

@@ -1,0 +1,60 @@
+_machine_ref: "machine/features/task-status-click.json"
+
+meta:
+  id: "feat-20260327-005"
+  title: "Task-Status per Klick ändern (Inline-Dropdown)"
+  category: "feature"
+  status: "completed"
+  priority: "medium"
+  created_at: "2026-03-27T10:29:35Z"
+  updated_at: "2026-03-27T10:29:35Z"
+  ticket_id: ""
+  tags:
+    - ux
+    - tasks
+    - inline-edit
+
+  description:
+    summary: >
+      Status-Punkt auf jeder Task-Zeile ist anklickbar. Öffnet ein Dropdown
+      mit allen Status-Optionen (BACKLOG → DONE). Ändert den Status sofort
+      via PATCH ohne das Modal öffnen zu müssen.
+    business_context: >
+      Status-Änderungen waren bisher nur über das Task-Modal möglich — zu viele
+      Klicks für eine häufige Aktion. Inline-Änderung beschleunigt den Daily-Workflow.
+    affected_components:
+      - "components/planning/FeatureCard.tsx"
+    affected_users: "Alle Nutzer der Planungsansicht"
+    acceptance_criteria:
+      - "Klick auf Status-Punkt öffnet Dropdown"
+      - "Alle Status-Optionen im Dropdown"
+      - "PATCH-Request bei Auswahl, UI sofort aktualisiert"
+
+entries:
+  - id: "entry-20260327-102935-fe01"
+    timestamp: "2026-03-27T10:29:35Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Inline-Status-Dropdown für Tasks in FeatureCard implementiert"
+    description:
+      what: >
+        Status-Punkt auf jeder Task-Zeile in FeatureCard.tsx ist jetzt anklickbar.
+        Öffnet ein Dropdown mit allen Status-Optionen. Bei Auswahl: PATCH-Request,
+        optimistisches UI-Update.
+      why: >
+        Häufige Aktion (Status ändern) war zu umständlich über das Modal.
+        Inline-Dropdown ist das Standard-UX-Pattern für solche Micro-Interactions.
+      technical_details: >
+        76 neue Zeilen in FeatureCard.tsx. Dropdown via useState + relative/absolute
+        Positionierung. stopPropagation verhindert versehentliches Modal-Öffnen.
+      side_effects: >
+        Keine neuen Dependencies. Nur FeatureCard betroffen.
+    code_changes:
+      - file: "components/planning/FeatureCard.tsx"
+        change_type: "modified"
+        lines_added: 76
+        lines_removed: 5
+        diff_summary: "Inline-Status-Dropdown mit PATCH-Integration"
+    dependencies: []
+    related_entries: []

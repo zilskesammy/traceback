@@ -1,0 +1,95 @@
+project: "traceback"
+last_updated: "2026-03-31T10:30:00Z"
+total_features: 10
+total_bugfixes: 1
+total_entries: 14
+
+features:
+  - id: "feat-20260326-001"
+    title: "Mintlify-Style Docs System"
+    file: "human/features/docs-system.yaml"
+    status: "completed"
+    priority: "medium"
+    entries_count: 1
+    last_entry: "2026-03-26T17:25:58Z"
+
+  - id: "feat-20260327-001"
+    title: "Epic/Feature/Task CRUD — UI Modals + API Routes"
+    file: "human/features/crud-modals.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-27T07:20:15Z"
+
+  - id: "feat-20260327-002"
+    title: "API-Key-System für AI-Agent-Zugriff"
+    file: "human/features/api-key-system.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-27T08:19:05Z"
+
+  - id: "feat-20260327-003"
+    title: "Kanban Board View mit Drag & Drop"
+    file: "human/features/kanban-board.yaml"
+    status: "completed"
+    priority: "medium"
+    entries_count: 2
+    last_entry: "2026-03-27T08:49:02Z"
+
+  - id: "feat-20260327-004"
+    title: "KI-gestützte Task-Implementierung via Claude"
+    file: "human/features/ai-task-implementation.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-27T10:23:35Z"
+
+  - id: "feat-20260327-005"
+    title: "Task-Status per Klick ändern (Inline-Dropdown)"
+    file: "human/features/task-status-click.yaml"
+    status: "completed"
+    priority: "medium"
+    entries_count: 1
+    last_entry: "2026-03-27T10:29:35Z"
+
+  - id: "feat-20260327-006"
+    title: "GitHub-Integration — Webhooks, PR-Tracking, Commits-View, TB-Nummern"
+    file: "human/features/github-integration.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 2
+    last_entry: "2026-03-27T13:14:45Z"
+
+  - id: "feat-20260330-001"
+    title: "MCP Extension — Foundation (Dependencies + Schema + Seed)"
+    file: "human/features/mcp-extension-foundation.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 2
+    last_entry: "2026-03-30T12:00:00Z"
+
+  - id: "feat-20260330-002"
+    title: "MCP Extension — Frontend Components (SessionViewer, AgentBadge, AgentDelegation)"
+    file: "human/features/mcp-extension-frontend.yaml"
+    status: "in_progress"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-30T12:00:00Z"
+
+  - id: "feat-20260331-001"
+    title: "Changelog Sync — GitHub YAML Parser"
+    file: "human/features/changelog-sync-parser.yaml"
+    status: "in_progress"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-31T10:30:00Z"
+
+bugfixes:
+  - id: "fix-20260327-001"
+    title: "x-api-key Requests durch Middleware blockiert"
+    file: "human/bugfixes/middleware-api-key.yaml"
+    status: "completed"
+    priority: "high"
+    entries_count: 1
+    last_entry: "2026-03-27T09:13:17Z"

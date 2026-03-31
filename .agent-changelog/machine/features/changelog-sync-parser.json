@@ -1,0 +1,33 @@
+{
+  "id": "feat-20260331-001",
+  "title": "Changelog Sync — GitHub YAML Parser",
+  "category": "feature",
+  "status": "in_progress",
+  "priority": "high",
+  "created_at": "2026-03-31T10:30:00Z",
+  "updated_at": "2026-03-31T10:30:00Z",
+  "ticket_id": "",
+  "tags": ["changelog", "github", "parser", "sync", "yaml"],
+  "summary": "YAML-Parser-Schicht für das Changelog-Sync-System: liest .agent-changelog/human/features/*.yaml und human/bugfixes/*.yaml direkt aus dem GitHub-Repo und wandelt sie in typsichere ParsedFeature-Objekte um.",
+  "business_context": "Das Changelog-System schreibt Einträge lokal in YAML-Dateien. Damit diese Daten in der Traceback-Datenbank landen und über die UI lesbar werden, braucht es eine Parser-Schicht, die den GitHub-Baum liest und normalisiert. Dieser Parser ist Task 4 des mehrstufigen Changelog-Sync-Plans.",
+  "affected_components": [
+    "lib/changelog/parser.ts",
+    "lib/github-api.ts",
+    "types/changelog.ts"
+  ],
+  "affected_users": "Alle Nutzer, die den Changelog-Sync-Prozess auslösen",
+  "acceptance_criteria": [
+    "Parser liest .agent-changelog/human/features/ und human/bugfixes/ via GitHub API",
+    "YAML wird in typsichere ParsedFeature-Objekte konvertiert",
+    "Alle Enum-Werte werden normalisiert (case-insensitive, mit Fallbacks)",
+    "Ungültige YAML-Dateien werden graceful übersprungen (console.warn, kein Throw)",
+    "npx tsc --noEmit zeigt keine Fehler in lib/changelog/parser.ts"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260331-103000-be01"],
+  "_source_yaml": "human/features/changelog-sync-parser.yaml"
+}

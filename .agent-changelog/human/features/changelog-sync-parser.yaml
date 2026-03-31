@@ -1,0 +1,88 @@
+_machine_ref: "machine/features/changelog-sync-parser.json"
+
+meta:
+  id: "feat-20260331-001"
+  title: "Changelog Sync — GitHub YAML Parser"
+  category: "feature"
+  status: "in_progress"
+  priority: "high"
+  created_at: "2026-03-31T10:30:00Z"
+  updated_at: "2026-03-31T10:30:00Z"
+  ticket_id: ""
+  tags:
+    - changelog
+    - github
+    - parser
+    - sync
+    - yaml
+
+  description:
+    summary: >
+      YAML-Parser-Schicht für das Changelog-Sync-System: liest
+      .agent-changelog/human/features/*.yaml und human/bugfixes/*.yaml
+      direkt aus dem GitHub-Repo und wandelt sie in typsichere
+      ParsedFeature-Objekte um, die direkt für Prisma-Upserts genutzt
+      werden können.
+    business_context: >
+      Das Changelog-System schreibt Einträge lokal in YAML-Dateien.
+      Damit diese Daten in der Traceback-Datenbank landen und über
+      die UI lesbar werden, braucht es eine Parser-Schicht, die den
+      GitHub-Baum liest und normalisiert. Dieser Parser ist Task 4
+      des mehrstufigen Changelog-Sync-Plans.
+    affected_components:
+      - "lib/changelog/parser.ts"
+      - "lib/github-api.ts"
+      - "types/changelog.ts"
+    affected_users: "Alle Nutzer, die den Changelog-Sync-Prozess auslösen"
+    acceptance_criteria:
+      - "Parser liest .agent-changelog/human/features/ und human/bugfixes/ via GitHub API"
+      - "YAML wird in typsichere ParsedFeature-Objekte konvertiert"
+      - "Alle Enum-Werte werden normalisiert (case-insensitive, mit Fallbacks)"
+      - "Ungültige YAML-Dateien werden graceful übersprungen (console.warn, kein Throw)"
+      - "npx tsc --noEmit zeigt keine Fehler in lib/changelog/parser.ts"
+
+entries:
+  - id: "entry-20260331-103000-be01"
+    timestamp: "2026-03-31T10:30:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Changelog YAML-Parser erstellt — liest GitHub-Tree und gibt ParsedFeature[] zurück"
+    description:
+      what: >
+        lib/changelog/parser.ts neu erstellt. Enthält drei Export-Typen
+        (ParsedCodeChange, ParsedEntry, ParsedFeature), sechs Normalisierungs-
+        Helfer (normalizeType, normalizeStatus, normalizePriority,
+        normalizeAgentType, normalizeAction, normalizeChangeType) sowie
+        den internen parseYamlFile()-Parser und die öffentliche
+        fetchChangelogFromGitHub()-Funktion.
+      why: >
+        Task 4 des Changelog-Sync-Plans. Die Parser-Schicht ist die
+        Brücke zwischen dem flachen YAML-Dateibaum auf GitHub und den
+        strukturierten Prisma-Modellen in der Datenbank. Normalisierung
+        hier zentralisieren bedeutet, dass DB-Upserts (Task 5+) keine
+        eigene Enum-Konvertierung brauchen.
+      technical_details: >
+        js-yaml zum YAML-Parsing. getFileContent und listDirectory aus
+        lib/github-api.ts für den GitHub-Zugriff. Alle Enum-Normalisierungen
+        sind case-insensitive mit ?? Fallbacks (niemals throw). parseYamlFile()
+        gibt null zurück wenn meta.id oder meta.title fehlen — der Caller
+        filtert per if (parsed) results.push(parsed). linesAdded/linesRemoved
+        auf Entry-Ebene werden aus den code_changes summiert statt als
+        separates Feld erwartet. fetchChangelogFromGitHub iteriert über
+        zwei Verzeichnisse: human/features und human/bugfixes.
+      side_effects: >
+        Neues Verzeichnis lib/changelog/ angelegt. js-yaml muss als
+        Dependency vorhanden sein (bereits im Projekt). Keine neuen
+        API-Endpoints, keine DB-Änderungen — reine Parsing-Schicht.
+    code_changes:
+      - file: "lib/changelog/parser.ts"
+        change_type: "added"
+        lines_added: 255
+        lines_removed: 0
+        diff_summary: >
+          Neue Datei: Export-Typen ParsedCodeChange/ParsedEntry/ParsedFeature,
+          Normalisierungshelper für alle Enums, YAML-Parser mit graceful
+          error handling, fetchChangelogFromGitHub als Haupt-Export
+    dependencies: []
+    related_entries: []

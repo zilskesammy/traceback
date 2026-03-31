@@ -1,0 +1,91 @@
+_machine_ref: "machine/features/ai-task-implementation.json"
+
+meta:
+  id: "feat-20260327-004"
+  title: "KI-gestützte Task-Implementierung via Claude"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-27T10:23:35Z"
+  updated_at: "2026-03-27T10:23:35Z"
+  ticket_id: ""
+  tags:
+    - ai
+    - claude
+    - github
+    - automation
+
+  description:
+    summary: >
+      "Mit Claude implementieren"-Button für TODO-Tasks. Claude liest Context Files,
+      schreibt Code, erstellt einen GitHub-Branch und öffnet automatisch einen
+      Pull Request. Task wechselt zu IN_REVIEW.
+    business_context: >
+      Die Kern-Value-Proposition von traceback: AI-Agenten können Tickets
+      direkt aus der App heraus implementieren. Das schließt den Kreislauf
+      von Planung → Implementierung → Review.
+    affected_components:
+      - "app/api/tasks/[taskId]/implement/route.ts"
+      - "lib/anthropic.ts"
+      - "lib/github-api.ts"
+      - "components/planning/FeatureCard.tsx"
+      - "components/planning/modals/TaskModal.tsx"
+      - "prisma/schema.prisma"
+    affected_users: "Nutzer mit verknüpftem GitHub-Repo und gesetzten API-Keys"
+    acceptance_criteria:
+      - "⚡ Button auf TODO-Tasks in FeatureCard und TaskModal"
+      - "Claude liest Context Files der Task"
+      - "GitHub Branch + Commit via Trees API erstellt"
+      - "PR automatisch geöffnet, Task → IN_REVIEW, PR-URL gespeichert"
+      - "Violettes PR-Badge in FeatureCard"
+
+entries:
+  - id: "entry-20260327-102335-fe01"
+    timestamp: "2026-03-27T10:23:35Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "AI-Task-Implementierung: Anthropic + GitHub Trees API vollständig integriert"
+    description:
+      what: >
+        POST /api/tasks/[taskId]/implement als Haupt-Endpunkt. lib/anthropic.ts
+        als Anthropic Client Singleton. lib/github-api.ts mit GitHub Trees API
+        für Branch-Erstellung, Commit und PR-Öffnung. Prisma: prUrl String? zu
+        Task hinzugefügt. FeatureCard: ⚡ Button auf TODO-Zeilen + violettes
+        PR-Badge. TaskModal: ⚡ Button im Modal (nur bei TODO sichtbar).
+      why: >
+        Das ist das Kernangebot von traceback — Agenten implementieren Tickets
+        direkt aus der Planungsansicht heraus. Die GitHub Trees API erlaubt
+        Branch + Commit in einem Schritt ohne lokalen Clone.
+      technical_details: >
+        implement/route.ts (295 Zeilen): lädt Task + Context Files, baut Prompt,
+        streamt Claude-Antwort, parst Datei-Änderungen, erstellt Branch via
+        Trees API, committet, öffnet PR. prUrl in Prisma für PR-Badge-Anzeige.
+        Benötigt ANTHROPIC_API_KEY und GITHUB_TOKEN (repo scope) als Env-Variablen.
+      side_effects: >
+        Zwei neue Env-Variablen erforderlich. Package.json um @anthropic-ai/sdk
+        erweitert. Prisma-Schema-Migration erforderlich (prUrl Feld).
+    code_changes:
+      - file: "app/api/tasks/[taskId]/implement/route.ts"
+        change_type: "added"
+        lines_added: 295
+        lines_removed: 0
+        diff_summary: "Haupt-Implementierungs-Endpunkt mit Claude + GitHub"
+      - file: "lib/anthropic.ts"
+        change_type: "added"
+        lines_added: 17
+        lines_removed: 0
+        diff_summary: "Anthropic Client Singleton"
+      - file: "lib/github-api.ts"
+        change_type: "added"
+        lines_added: 169
+        lines_removed: 0
+        diff_summary: "GitHub Trees API: Branch, Commit, PR"
+      - file: "prisma/schema.prisma"
+        change_type: "modified"
+        lines_added: 1
+        lines_removed: 0
+        diff_summary: "prUrl String? zu Task hinzugefügt"
+    dependencies:
+      - "@anthropic-ai/sdk"
+    related_entries: []

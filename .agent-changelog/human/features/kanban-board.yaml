@@ -1,0 +1,107 @@
+_machine_ref: "machine/features/kanban-board.json"
+
+meta:
+  id: "feat-20260327-003"
+  title: "Kanban Board View mit Drag & Drop"
+  category: "feature"
+  status: "completed"
+  priority: "medium"
+  created_at: "2026-03-27T08:36:00Z"
+  updated_at: "2026-03-27T08:49:02Z"
+  ticket_id: ""
+  tags:
+    - kanban
+    - ui
+    - drag-drop
+    - planning
+
+  description:
+    summary: >
+      Kanban-Board-Ansicht für Features nach Status-Spalten (Backlog → Done),
+      mit nativem HTML5 Drag & Drop und Settings-Link in der Sidebar.
+    business_context: >
+      Die Listenansicht eignet sich gut für Details, aber ein Kanban-Board
+      gibt einen schnelleren Überblick über den Status-Fortschritt.
+      Drag & Drop macht Status-Änderungen intuitiver.
+    affected_components:
+      - "components/planning/KanbanBoard.tsx"
+      - "components/planning/PlanningLayout.tsx"
+      - "components/planning/modals/FeatureModal.tsx"
+    affected_users: "Alle Nutzer der Planungsansicht"
+    acceptance_criteria:
+      - "Kanban-Option im View-Toggle (List / Kanban / YAML)"
+      - "Features in Status-Spalten organisiert"
+      - "Drag & Drop zwischen Spalten ändert Feature-Status via PATCH"
+      - "Settings-Link (Zahnrad) in der Sidebar"
+
+entries:
+  - id: "entry-20260327-083600-fe01"
+    timestamp: "2026-03-27T08:36:00Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "KanbanBoard-Komponente mit View-Toggle und Settings-Link erstellt"
+    description:
+      what: >
+        KanbanBoard.tsx: Features in Status-Spalten (Backlog, In Progress, In Review,
+        Done, Cancelled). Kompakte Cards mit Task-Progress-Bar, Assignee-Badge,
+        Commit-Ref. ViewToggle um "Kanban" erweitert. Settings-Link (Zahnrad)
+        unten in der Epic-Sidebar. FeatureModal um preselectedStatus-Prop erweitert.
+      why: >
+        Kanban ist eine vertraute Darstellung für Entwicklungsteams.
+        Der Settings-Link fehlte bisher in der Hauptnavigation.
+      technical_details: >
+        Reine React-Komponente ohne externe Kanban-Bibliothek. Spalten
+        dynamisch aus STATUS_CONFIG generiert. preselectedStatus in FeatureModal
+        für "+" Buttons in Kanban-Spalten.
+      side_effects: >
+        PlanningLayout erheblich erweitert (39 Zeilen Diff). Neuer Pfad
+        /projects/[id]/settings als Navigation-Ziel.
+    code_changes:
+      - file: "components/planning/KanbanBoard.tsx"
+        change_type: "added"
+        lines_added: 320
+        lines_removed: 0
+        diff_summary: "Neue Kanban-Board-Komponente"
+      - file: "components/planning/PlanningLayout.tsx"
+        change_type: "modified"
+        lines_added: 32
+        lines_removed: 7
+        diff_summary: "ViewToggle + Settings-Link integriert"
+    dependencies: []
+    related_entries: []
+
+  - id: "entry-20260327-084902-fe01"
+    timestamp: "2026-03-27T08:49:02Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Drag & Drop zu KanbanBoard hinzugefügt, Settings-Link-Position korrigiert"
+    description:
+      what: >
+        HTML5-natives Drag & Drop: Karte auf andere Spalte ziehen ruft PATCH auf
+        und hebt Drop-Ziel-Spalte hervor. Fix: Settings-Link war außerhalb des
+        <aside>-Elements, jetzt korrekt als Flex-Child. aside overflow-hidden damit
+        Epic-Liste unabhängig scrollt.
+      why: >
+        Drag & Drop macht Status-Änderungen intuitiver als Dropdown. Der Settings-Link
+        war durch den falschen DOM-Platz visuell falsch positioniert.
+      technical_details: >
+        onDragStart/onDragOver/onDrop Handler. Drop-Target-Hervorhebung via
+        isDragOver State. PATCH /api/features/[id] mit {status: newStatus}.
+      side_effects: >
+        KanbanBoard.tsx erheblich umgebaut (233 Zeilen Diff statt +320 vom Erstellen).
+    code_changes:
+      - file: "components/planning/KanbanBoard.tsx"
+        change_type: "modified"
+        lines_added: 159
+        lines_removed: 80
+        diff_summary: "Drag & Drop Handler und Drop-Target-Highlighting"
+      - file: "components/planning/PlanningLayout.tsx"
+        change_type: "modified"
+        lines_added: 4
+        lines_removed: 2
+        diff_summary: "Settings-Link in aside verschoben, overflow-hidden"
+    dependencies: []
+    related_entries:
+      - "entry-20260327-083600-fe01"

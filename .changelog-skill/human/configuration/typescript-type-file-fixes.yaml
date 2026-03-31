@@ -1,0 +1,75 @@
+_machine_ref: "machine/configuration/typescript-type-file-fixes.json"
+
+meta:
+  id: "conf-20260331-001"
+  title: "TypeScript type file fixes: UIChangelogEntry.createdAt, omitted relations comment, header comments"
+  category: "configuration"
+  status: "completed"
+  priority: "medium"
+  created_at: "2026-03-31T00:00:00Z"
+  updated_at: "2026-03-31T00:00:00Z"
+  ticket_id: ""
+  tags:
+    - typescript
+    - types
+    - changelog
+
+  description:
+    summary: >
+      Four targeted fixes to types/changelog.ts and types/planning.ts:
+      added missing createdAt field to UIChangelogEntry, documented
+      intentionally omitted relations on UIChangelogFeature, and
+      translated both file header comments from German to English.
+    affected_components:
+      - "types/changelog.ts"
+      - "types/planning.ts"
+    affected_users: "Developers consuming UIChangelogEntry — createdAt was missing from the type"
+
+entries:
+  - id: "entry-20260331-000000-be01"
+    timestamp: "2026-03-31T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Added createdAt to UIChangelogEntry, documented omitted relations, translated file headers"
+    description:
+      what: >
+        Fix 1: Added `createdAt: string; // ISO` to UIChangelogEntry in
+        types/changelog.ts, placed between linesRemoved and codeChanges.
+        Fix 2: Added comment `// children, linkedPrs, sessionSteps omitted —
+        load separately if needed` at the end of UIChangelogFeature before
+        the closing brace.
+        Fix 3: Translated the file header of types/changelog.ts from German
+        to English.
+        Fix 4: Translated the file header of types/planning.ts from German
+        to English.
+      why: >
+        createdAt was a required field for consumers mapping UIChangelogEntry
+        to database records but was absent from the type definition, causing
+        TypeScript callers to lack type safety on that field. The omitted
+        relations comment prevents future developers from accidentally
+        expecting children/linkedPrs/sessionSteps to be present inline. The
+        header translations align the codebase to an English-only convention.
+      technical_details: >
+        No runtime impact — all changes are type-level only. The TypeScript
+        compiler check (npx tsc --noEmit) produced no errors in either file
+        after the changes. Pre-existing errors in consumer files
+        (app/(app)/projects/[id]/page.tsx, components/planning/**) were
+        already present and are unrelated to these type file edits.
+      side_effects: >
+        Any code that constructs a UIChangelogEntry object without providing
+        createdAt will now get a TypeScript compile error — this is the
+        intended effect and will surface missing field assignments.
+    code_changes:
+      - file: "types/changelog.ts"
+        change_type: "modified"
+        lines_added: 3
+        lines_removed: 1
+        diff_summary: "Added createdAt field to UIChangelogEntry; added omitted relations comment to UIChangelogFeature; translated file header to English"
+      - file: "types/planning.ts"
+        change_type: "modified"
+        lines_added: 1
+        lines_removed: 1
+        diff_summary: "Translated file header comment from German to English"
+    dependencies: []
+    related_entries: []

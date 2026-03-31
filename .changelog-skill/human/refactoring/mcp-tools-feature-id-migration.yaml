@@ -1,0 +1,145 @@
+_machine_ref: "machine/refactoring/mcp-tools-feature-id-migration.json"
+
+meta:
+  id: "refac-20260331-003"
+  title: "MCP Tools: ticket_id/ticketId zu feature_id/featureId migriert, TaskComment-Tool entfernt"
+  category: "refactoring"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-31T14:00:00Z"
+  updated_at: "2026-03-31T15:00:00Z"
+  ticket_id: ""
+  tags:
+    - mcp
+    - refactoring
+    - changelog-feature
+    - feature-id
+
+  description:
+    summary: >
+      Alle vier MCP-Tool-Dateien wurden aktualisiert, um das neue
+      ChangelogFeature-Datenmodell zu verwenden. ticket_id/ticketId
+      wurde durchgängig zu feature_id/featureId umbenannt. Das
+      TaskComment-Tool wurde entfernt, da das TaskComment-Modell
+      aus dem Schema entfernt wurde.
+    motivation: >
+      Das Prisma-Schema wurde in einem vorhergehenden Refactoring
+      (refac-20260331-001) von Epic/Feature/Task auf
+      ChangelogFeature/ChangelogEntry/CodeChange umgestellt.
+      Die MCP-Tools bezogen sich noch auf die alten Modelle
+      (Task, TaskComment, ticketId) und mussten nachgezogen werden.
+    breaking_changes: >
+      Die MCP-Tool-Parameter aendern sich: sessions.ts und links.ts
+      verwenden jetzt feature_id statt ticket_id als Parametername.
+      Bestehende MCP-Clients muessen ihre Aufrufe anpassen.
+      Das Tool traceback_add_comment existiert nicht mehr.
+    affected_components:
+      - "lib/mcp/tools/sessions.ts"
+      - "lib/mcp/tools/links.ts"
+      - "lib/mcp/tools/tickets.ts"
+      - "lib/mcp/tools/comments.ts"
+
+entries:
+  - id: "entry-20260331-140000-be01"
+    timestamp: "2026-03-31T14:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Alle vier MCP-Tool-Dateien auf ChangelogFeature-Modell umgestellt"
+    description:
+      what: >
+        sessions.ts: ticket_id/ticketId durch feature_id/featureId ersetzt.
+        Veralteter db.task.updateMany-Call und any-Typen entfernt.
+        links.ts: ticket_id/ticketId durch feature_id/featureId ersetzt.
+        tickets.ts: Komplette Neufassung — alte Task/Epic/Feature-Logik
+        entfernt, ChangelogFeature als Zielmodell, ChangelogStatus/
+        ChangelogItemType als Typen, serializeFeature statt serializeTask.
+        comments.ts: Tool-Registrierung entfernt, Datei auf leere Stub-
+        Funktion reduziert mit erklaerenden Kommentaren.
+      why: >
+        Das Prisma-Schema verwendet ChangelogFeature als zentrales
+        Datenmodell statt der alten Task-Hierarchie. Die MCP-Tools
+        muessen konsistent mit dem Schema sein, damit Agents via
+        MCP korrekt auf die Daten zugreifen koennen.
+      technical_details: >
+        sessions.ts: createSessionStep-Aufruf verwendet jetzt featureId
+        statt ticketId. db.sessionStep.findMany filtert nach featureId.
+        links.ts: createLinkedPR-Aufruf verwendet featureId.
+        tickets.ts: toDbStatus mappt auf ChangelogStatus (PLANNED,
+        IN_PROGRESS, COMPLETED). serializeFeature gibt id, type, status,
+        priority, title, summary, tags zurueck. list_tickets filtert
+        direkt auf changelogFeature mit projectId. get_ticket laedt
+        entries+codeChanges+linkedPrs+sessionLog. create_ticket erstellt
+        ChangelogFeature mit generierter ID (feat-{timestamp}-ui).
+        update_ticket aktualisiert status/title/summary.
+        Alle e: any durch e: unknown mit (e as Error).message ersetzt.
+      side_effects: >
+        MCP-Clients die ticket_id fuer traceback_log_session_step oder
+        traceback_link_pr uebergeben erhalten Validierungsfehler.
+        traceback_add_comment existiert nicht mehr.
+        traceback_list_tickets hat andere Parameter (type/status statt
+        delegate_id/assignee_id/status).
+    code_changes:
+      - file: "lib/mcp/tools/sessions.ts"
+        change_type: "modified"
+        lines_added: 30
+        lines_removed: 43
+        diff_summary: "ticket_id/ticketId zu feature_id/featureId, db.task.updateMany entfernt, any durch unknown"
+      - file: "lib/mcp/tools/links.ts"
+        change_type: "modified"
+        lines_added: 10
+        lines_removed: 10
+        diff_summary: "ticket_id/ticketId zu feature_id/featureId, Tool-Beschreibung aktualisiert"
+      - file: "lib/mcp/tools/tickets.ts"
+        change_type: "modified"
+        lines_added: 120
+        lines_removed: 140
+        diff_summary: "Komplette Neufassung auf ChangelogFeature-Modell, alte Task/Epic-Logik entfernt"
+      - file: "lib/mcp/tools/comments.ts"
+        change_type: "modified"
+        lines_added: 5
+        lines_removed: 26
+        diff_summary: "Tool-Registrierung entfernt, leere Stub-Funktion mit Kommentar"
+    dependencies: []
+    related_entries:
+      - "refac-20260331-001"
+
+  - id: "entry-20260331-150000-be02"
+    timestamp: "2026-03-31T15:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Verbliebene ticket_id Vorkommen in tickets.ts tool-Parametern umbenannt"
+    description:
+      what: >
+        In lib/mcp/tools/tickets.ts wurden alle verbleibenden ticket_id
+        Vorkommen zu feature_id umbenannt. Betroffen waren die Zod-Schema-
+        Deklaration und die Destrukturierung im Handler von
+        traceback_get_ticket sowie traceback_update_ticket (7 Vorkommen total).
+      why: >
+        Bei der vorherigen Migration (entry-20260331-140000-be01) wurden
+        die Parameternamen in den Tool-Definitionen von traceback_get_ticket
+        und traceback_update_ticket noch nicht vollstaendig aktualisiert.
+        Die Parameter-Namen sind Teil der MCP-Tool-Schnittstelle und
+        muessen feature_id heissen, damit MCP-Clients konsistente
+        Feldnamen vorfinden.
+      technical_details: >
+        replace_all Edit auf lib/mcp/tools/tickets.ts. 7 Ersetzungen:
+        Zod-Schema-Felder (.ticket_id: z.string()...) in
+        traceback_get_ticket und traceback_update_ticket sowie deren
+        Destrukturierungen in den async Handler-Signaturen und den
+        db.changelogFeature.findUnique/update where-Klauseln.
+        TypeScript-Pruefung (tsc --noEmit) ergab keine Fehler.
+      side_effects: >
+        Breaking Change fuer MCP-Clients: traceback_get_ticket und
+        traceback_update_ticket erwarten jetzt feature_id statt ticket_id
+        als Parameternamen. Clients muessen ihre Aufrufe aktualisieren.
+    code_changes:
+      - file: "lib/mcp/tools/tickets.ts"
+        change_type: "modified"
+        lines_added: 7
+        lines_removed: 7
+        diff_summary: "ticket_id -> feature_id in Zod-Schemas und Handler-Destrukturierung beider Tools"
+    dependencies: []
+    related_entries:
+      - "entry-20260331-140000-be01"

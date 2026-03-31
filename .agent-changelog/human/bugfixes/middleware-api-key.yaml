@@ -1,0 +1,68 @@
+_machine_ref: "machine/bugfixes/middleware-api-key.json"
+
+meta:
+  id: "fix-20260327-001"
+  title: "x-api-key Requests durch Middleware blockiert"
+  category: "bugfix"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-27T09:13:17Z"
+  updated_at: "2026-03-27T09:13:17Z"
+  ticket_id: ""
+  tags:
+    - middleware
+    - auth
+    - api-key
+    - agents
+
+  description:
+    summary: >
+      API-Agent-Requests mit x-api-key Header wurden von der Middleware
+      blockiert bevor sie den Route-Handler erreichten.
+    root_cause: >
+      Die Middleware prüfte Session-Auth für alle Requests ohne Ausnahme für
+      x-api-key Header. API-Agents, die keinen Session-Cookie mitschicken,
+      wurden mit 401/302 abgewiesen bevor der Route-Handler die Key-Validierung
+      durchführen konnte.
+    impact: >
+      Alle programmatischen API-Zugriffe via x-api-key waren nicht funktionsfähig.
+      Das betraf das gesamte AI-Agent-Ökosystem (100% der Agent-Requests).
+    resolution: >
+      proxy.ts: Requests mit x-api-key Header bypassen die Session-Prüfung
+      in der Middleware. Die Route-Handler validieren den Key selbst.
+    regression_risk: >
+      Gering. Die Änderung ist auf proxy.ts beschränkt und betrifft nur den
+      Bypass-Pfad. Session-Auth für normale Nutzer ist unverändert.
+    affected_components:
+      - "proxy.ts"
+    affected_users: "AI-Agenten und Tools die x-api-key für API-Zugriff nutzen"
+
+entries:
+  - id: "entry-20260327-091317-be01"
+    timestamp: "2026-03-27T09:13:17Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "fixed"
+    summary: "x-api-key Requests bypassen jetzt Session-Check in Middleware"
+    description:
+      what: >
+        proxy.ts um 5 Zeilen erweitert: Requests mit x-api-key Header werden
+        direkt durchgelassen ohne Session-Validierung. Route-Handler übernehmen
+        die Key-Prüfung.
+      why: >
+        Das API-Key-System (feat-20260327-002) war funktionslos solange die
+        Middleware alle nicht-authentifizierten Requests blockierte.
+      technical_details: >
+        Früherkennung des x-api-key Headers im Proxy-Middleware-Stack.
+        Defense-in-depth bleibt erhalten: Route-Handler validieren den Key.
+      side_effects: >
+        Keine. Nur proxy.ts geändert, Session-Auth für normale Nutzer unberührt.
+    code_changes:
+      - file: "proxy.ts"
+        change_type: "modified"
+        lines_added: 5
+        lines_removed: 0
+        diff_summary: "x-api-key Header bypass für Session-Check"
+    dependencies: []
+    related_entries:
+      - "entry-20260327-081905-fe01"

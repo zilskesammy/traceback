@@ -1,0 +1,195 @@
+<h2>Vollständiges System-Design</h2>
+<p class="subtitle">Datenfluss · DB-Schema · UI — bitte durchlesen und bestätigen</p>
+
+<!-- DATA FLOW -->
+<div class="section">
+  <h3>1. Datenfluss</h3>
+  <div style="background:#0d1117;border-radius:8px;padding:16px;font-size:12px;border:1px solid #30363d">
+    <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap">
+      <div style="text-align:center;padding:10px 14px;background:#1e1e2e;border-radius:6px;border:1px solid #a78bfa">
+        <div style="color:#a78bfa;font-weight:700">Agent / Mensch</div>
+        <div style="color:#888;font-size:10px;margin-top:3px">schreibt .agent-changelog/</div>
+      </div>
+      <div style="color:#555;padding:0 8px;font-size:16px">→</div>
+      <div style="text-align:center;padding:10px 14px;background:#1e1e2e;border-radius:6px;border:1px solid #f59e0b">
+        <div style="color:#f59e0b;font-weight:700">Git Push</div>
+        <div style="color:#888;font-size:10px;margin-top:3px">human/ + machine/ → GitHub</div>
+      </div>
+      <div style="color:#555;padding:0 8px;font-size:16px">→</div>
+      <div style="text-align:center;padding:10px 14px;background:#1e1e2e;border-radius:6px;border:1px solid #10b981">
+        <div style="color:#10b981;font-weight:700">Webhook / Sync</div>
+        <div style="color:#888;font-size:10px;margin-top:3px">GitHub Push-Event → /api/webhook/github<br>+ manueller Sync-Button</div>
+      </div>
+      <div style="color:#555;padding:0 8px;font-size:16px">→</div>
+      <div style="text-align:center;padding:10px 14px;background:#1e1e2e;border-radius:6px;border:1px solid #3b82f6">
+        <div style="color:#3b82f6;font-weight:700">Traceback DB</div>
+        <div style="color:#888;font-size:10px;margin-top:3px">Upsert via ID aus Changelog</div>
+      </div>
+      <div style="color:#555;padding:0 8px;font-size:16px">→</div>
+      <div style="text-align:center;padding:10px 14px;background:#1e1e2e;border-radius:6px;border:1px solid #ec4899">
+        <div style="color:#ec4899;font-weight:700">UI</div>
+        <div style="color:#888;font-size:10px;margin-top:3px">Multi-Project · Feature-Liste · Entry-Timeline</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;color:#888;font-size:11px">
+      <strong style="color:#ccc">Sync-Trigger:</strong> (1) GitHub Push-Webhook erkennt Änderungen in <code>.agent-changelog/</code> → automatisch · (2) "Sync" Button in UI → manuell
+    </div>
+  </div>
+</div>
+
+<!-- DB SCHEMA -->
+<div class="section">
+  <h3>2. DB-Schema — neue Modelle</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px">
+
+    <div style="background:#1e1e2e;border-radius:6px;padding:10px;border:1px solid #a78bfa">
+      <div style="color:#a78bfa;font-weight:700;margin-bottom:6px">ChangelogFeature</div>
+      <div style="color:#888;line-height:1.9">
+        <span style="color:#555">id</span> String @id <span style="color:#10b981">(aus YAML)</span><br>
+        <span style="color:#555">projectId</span> String<br>
+        <span style="color:#555">parentId</span> String? <span style="color:#10b981">(self-ref)</span><br>
+        <span style="color:#555">type</span> FEATURE|BUGFIX|EPIC|TASK<br>
+        <span style="color:#555">status</span> PLANNED|IN_PROGRESS|COMPLETED<br>
+        <span style="color:#555">priority</span> HIGH|MEDIUM|LOW<br>
+        <span style="color:#555">title</span> String<br>
+        <span style="color:#555">summary</span> Text<br>
+        <span style="color:#555">businessContext</span> Text?<br>
+        <span style="color:#555">rootCause</span> Text? <span style="color:#10b981">(bugfix)</span><br>
+        <span style="color:#555">impact</span> Text?<br>
+        <span style="color:#555">resolution</span> Text?<br>
+        <span style="color:#555">regressionRisk</span> Text?<br>
+        <span style="color:#555">affectedComponents</span> String[]<br>
+        <span style="color:#555">affectedUsers</span> Text?<br>
+        <span style="color:#555">acceptanceCriteria</span> String[]<br>
+        <span style="color:#555">tags</span> String[]<br>
+        <span style="color:#555">source</span> CHANGELOG|UI<br>
+        <span style="color:#555">sourceFile</span> String? <span style="color:#10b981">(YAML-Pfad)</span><br>
+        <span style="color:#555">createdAt / updatedAt</span>
+      </div>
+    </div>
+
+    <div style="background:#1e1e2e;border-radius:6px;padding:10px;border:1px solid #10b981">
+      <div style="color:#10b981;font-weight:700;margin-bottom:6px">ChangelogEntry</div>
+      <div style="color:#888;line-height:1.9">
+        <span style="color:#555">id</span> String @id <span style="color:#10b981">(aus YAML)</span><br>
+        <span style="color:#555">featureId</span> String <span style="color:#10b981">(FK)</span><br>
+        <span style="color:#555">timestamp</span> DateTime<br>
+        <span style="color:#555">agentType</span> FRONTEND|BACKEND|QA|DEVOPS|FULLSTACK|HUMAN<br>
+        <span style="color:#555">agentName</span> String<br>
+        <span style="color:#555">action</span> CREATED|MODIFIED|FIXED|PLANNED<br>
+        <span style="color:#555">summary</span> Text<br>
+        <span style="color:#555">what</span> Text?<br>
+        <span style="color:#555">why</span> Text?<br>
+        <span style="color:#555">technicalDetails</span> Text?<br>
+        <span style="color:#555">sideEffects</span> Text?<br>
+        <span style="color:#555">dependencies</span> String[]<br>
+        <span style="color:#555">relatedEntryIds</span> String[]<br>
+        <span style="color:#555">linesAdded</span> Int @default(0)<br>
+        <span style="color:#555">linesRemoved</span> Int @default(0)<br>
+        <span style="color:#555">createdAt</span> DateTime
+      </div>
+    </div>
+
+    <div style="background:#1e1e2e;border-radius:6px;padding:10px;border:1px solid #f59e0b">
+      <div style="color:#f59e0b;font-weight:700;margin-bottom:6px">CodeChange</div>
+      <div style="color:#888;line-height:1.9">
+        <span style="color:#555">id</span> String @id @cuid<br>
+        <span style="color:#555">entryId</span> String <span style="color:#10b981">(FK)</span><br>
+        <span style="color:#555">file</span> String<br>
+        <span style="color:#555">changeType</span> ADDED|MODIFIED|REMOVED<br>
+        <span style="color:#555">linesAdded</span> Int<br>
+        <span style="color:#555">linesRemoved</span> Int<br>
+        <span style="color:#555">diffSummary</span> Text?<br>
+        <br>
+        <span style="color:#444">@@index([entryId])</span><br>
+        <span style="color:#444">@@index([file])</span>
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #2d2d3d">
+        <div style="color:#888;font-weight:600;margin-bottom:4px">Gelöscht:</div>
+        <div style="color:#ff6b6b;line-height:1.8;font-size:10px">
+          Epic ✗<br>Feature ✗<br>Task ✗<br>TaskComment ✗ <span style="color:#555">(→ Entry)</span>
+        </div>
+        <div style="color:#888;font-weight:600;margin-top:6px;margin-bottom:4px">Bleibt:</div>
+        <div style="color:#10b981;line-height:1.8;font-size:10px">
+          Project ✓ · User ✓ · Agent ✓<br>SessionStep ✓ · LinkedPR ✓<br>Commit ✓ · ApiKey ✓
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UI LAYOUT -->
+<div class="section">
+  <h3>3. UI-Layout</h3>
+  <div class="mockup">
+    <div class="mockup-header">Traceback — Multi-Project View</div>
+    <div class="mockup-body" style="padding:0;display:flex;gap:0;min-height:220px">
+      <!-- Sidebar -->
+      <div style="width:160px;background:#0d1117;border-right:1px solid #21262d;padding:10px;font-size:11px;flex-shrink:0">
+        <div style="color:#888;font-size:10px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Projekte</div>
+        <div style="padding:5px 8px;background:#1e1e2e;border-radius:4px;color:#a78bfa;margin-bottom:3px;border-left:2px solid #a78bfa">traceback</div>
+        <div style="padding:5px 8px;color:#888;margin-bottom:3px;border-radius:4px">my-other-repo</div>
+        <div style="padding:5px 8px;color:#555;margin-bottom:3px;border-radius:4px">+ Repo verbinden</div>
+        <div style="margin-top:16px;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Filter</div>
+        <div style="padding:4px 8px;color:#888;margin-top:4px">Alle Types</div>
+        <div style="padding:4px 8px;color:#888">Alle Agents</div>
+        <div style="padding:4px 8px;color:#888">Alle Status</div>
+      </div>
+      <!-- Main -->
+      <div style="flex:1;padding:12px;font-size:11px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="color:#ccc;font-weight:600">traceback — Changelog</div>
+          <div style="background:#a78bfa;color:#000;padding:3px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer">↓ Sync</div>
+        </div>
+        <!-- Feature row -->
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px 10px;margin-bottom:5px;border-left:3px solid #10b981;cursor:pointer">
+          <div style="display:flex;justify-content:space-between">
+            <div><span style="color:#10b981;font-size:10px;font-weight:600">FEATURE</span> <span style="color:#ccc">MCP Extension — Foundation</span></div>
+            <div style="color:#555;font-size:10px">2 entries · 30 Mär</div>
+          </div>
+          <div style="color:#888;margin-top:2px;font-size:10px">BackEnd · Claude · completed</div>
+        </div>
+        <!-- Expanded entries -->
+        <div style="background:#161622;border-radius:0 0 6px 6px;padding:8px 10px;margin-bottom:8px;margin-top:-4px;border-left:3px solid #10b981;border-top:none">
+          <div style="display:flex;gap:8px;margin-bottom:5px">
+            <div style="width:2px;background:#333;border-radius:1px"></div>
+            <div>
+              <div style="color:#888;font-size:10px"><span style="color:#3b82f6">BE</span> · Claude · created · 00:00</div>
+              <div style="color:#ccc;margin-top:1px">MCP SDK + zod installiert, Prisma-Schema erweitert</div>
+              <div style="color:#555;font-size:10px;margin-top:2px">4 files · +1024 / -35 lines</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="width:2px;background:#333;border-radius:1px"></div>
+            <div>
+              <div style="color:#888;font-size:10px"><span style="color:#3b82f6">BE</span> · Claude · created · 12:00</div>
+              <div style="color:#ccc;margin-top:1px">MCP Server (8 Tools) + REST API Endpoints</div>
+              <div style="color:#555;font-size:10px;margin-top:2px">14 files · +632 / -0 lines</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px 10px;margin-bottom:5px;border-left:3px solid #f59e0b">
+          <div style="display:flex;justify-content:space-between">
+            <div><span style="color:#f59e0b;font-size:10px;font-weight:600">BUGFIX</span> <span style="color:#ccc">x-api-key Requests durch Middleware blockiert</span></div>
+            <div style="color:#555;font-size:10px">1 entry · 27 Mär</div>
+          </div>
+          <div style="color:#888;margin-top:2px;font-size:10px">BackEnd · Claude · completed · <span style="color:#f59e0b">HIGH</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px">
+  <h3>Sieht das so richtig aus?</h3>
+  <div class="options">
+    <div class="option" data-choice="yes" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content"><h3>Ja, Design bestätigt</h3><p>Weiter zum vollständigen Spec-Dokument</p></div>
+    </div>
+    <div class="option" data-choice="adjust" onclick="toggleSelect(this)">
+      <div class="letter">△</div>
+      <div class="content"><h3>Fast — ich hab noch Anpassungen</h3><p>Im Terminal sagen was geändert werden soll</p></div>
+    </div>
+  </div>
+</div>

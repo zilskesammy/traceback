@@ -1,0 +1,151 @@
+_machine_ref: "machine/features/github-integration.json"
+
+meta:
+  id: "feat-20260327-006"
+  title: "GitHub-Integration — Webhooks, PR-Tracking, Commits-View, TB-Nummern"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-27T10:47:16Z"
+  updated_at: "2026-03-27T13:14:45Z"
+  ticket_id: ""
+  tags:
+    - github
+    - webhooks
+    - automation
+    - pr-tracking
+
+  description:
+    summary: >
+      Vollständige GitHub-Integration: Webhook-Handler für PR-Status-Tracking
+      und Commit-Status-Updates, Commits-View im Plannings-Layout, Repo-Settings
+      mit Webhook-Status, TB-{n} Nummern-Convention für Tasks und
+      automatische Webhook-Registrierung bei Projekt-Erstellung.
+    business_context: >
+      GitHub ist der zentrale Workflow für Entwicklerteams. Die Integration
+      macht traceback zum Single Source of Truth: Commits und PRs aktualisieren
+      automatisch den Task-Status, ohne manuelles Nachpflegen.
+    affected_components:
+      - "app/api/webhook/github/route.ts"
+      - "app/api/projects/[id]/commits/route.ts"
+      - "components/planning/CommitsView.tsx"
+      - "components/planning/PlanningLayout.tsx"
+      - "components/settings/RepoSection.tsx"
+      - "lib/github-api.ts"
+      - "lib/webhook/matchFilesToTickets.ts"
+      - "app/(app)/projects/new/page.tsx"
+      - "prisma/schema.prisma"
+    affected_users: "Nutzer mit verknüpftem GitHub-Repo"
+    acceptance_criteria:
+      - "PR opened/synchronize → Task IN_REVIEW + prUrl speichern"
+      - "PR merged → Task DONE"
+      - "PR closed (kein Merge) → Task zurück auf TODO"
+      - "Commit 'TB-{n}: ...' → Task #n → IN_PROGRESS"
+      - "Commits-View Tab mit Timeline nach Datum gruppiert"
+      - "Webhook automatisch bei Projekt-Erstellung registrieren"
+      - "TB-{n} Nummerierung im Prisma-Schema"
+
+entries:
+  - id: "entry-20260327-104716-fe01"
+    timestamp: "2026-03-27T10:47:16Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "GitHub PR-Status-Tracking, Commits-View und Repo-Settings implementiert"
+    description:
+      what: >
+        Webhook-Handler um PR-Events erweitert: opened/synchronize → IN_REVIEW,
+        merged → DONE, closed → TODO. extractTaskIdFromBranch() erkennt
+        "claude/task-{id}" Pattern. GET /api/projects/[id]/commits mit letzten
+        50 Commits und verlinkten Tickets. CommitsView-Komponente: Timeline nach
+        Datum gruppiert, expandierbare Commit-Cards. RepoSection-Komponente:
+        Repo-Card mit Webhook-Status-Indikator, letzter Push-Zeitstempel,
+        Webhook-URL mit Copy-Button. Glob-Pattern-Matching in matchFilesToTickets:
+        *, **, ? Wildcards via Regex-Konvertierung (keine externen Deps).
+      why: >
+        PR-Lifecycle-Events sind der natürlichste Trigger für Task-Status-Änderungen.
+        Die Commits-View schließt den Feedback-Loop: Nutzer sehen welche Commits
+        zu welchen Tickets gehören.
+      technical_details: >
+        7 geänderte Dateien, +689 Zeilen. CommitsView ist die größte Komponente
+        (317 Zeilen). Glob-Pattern zu Regex ohne externe Bibliothek für
+        minimale Bundle-Größe.
+      side_effects: >
+        Neuer Tab "Commits" im PlanningLayout View-Toggle. Webhook-Handler
+        erheblich gewachsen (+88 Zeilen). Settings-Seite um RepoSection erweitert.
+    code_changes:
+      - file: "components/planning/CommitsView.tsx"
+        change_type: "added"
+        lines_added: 317
+        lines_removed: 0
+        diff_summary: "Commits-Timeline mit verlinkten Tickets"
+      - file: "components/settings/RepoSection.tsx"
+        change_type: "added"
+        lines_added: 127
+        lines_removed: 0
+        diff_summary: "Repo-Card mit Webhook-Status"
+      - file: "app/api/projects/[id]/commits/route.ts"
+        change_type: "added"
+        lines_added: 75
+        lines_removed: 0
+        diff_summary: "Commits-API mit Ticket-Verlinkung"
+      - file: "app/api/webhook/github/route.ts"
+        change_type: "modified"
+        lines_added: 88
+        lines_removed: 0
+        diff_summary: "PR-Event-Handler (opened, merged, closed)"
+      - file: "lib/webhook/matchFilesToTickets.ts"
+        change_type: "modified"
+        lines_added: 20
+        lines_removed: 5
+        diff_summary: "Glob-Pattern-Matching mit *, **, ? Support"
+    dependencies: []
+    related_entries: []
+
+  - id: "entry-20260327-131445-fe01"
+    timestamp: "2026-03-27T13:14:45Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "TB-Nummern-Convention und automatische Webhook-Registrierung ergänzt"
+    description:
+      what: >
+        Task.number: neues Int-Feld für TB-{n} Convention (auto-assign bei Erstellung
+        via API-Route). Webhook-Handler: Commit-Messages und PR-Titel nach TB-{n}
+        Pattern parsen → Status-Updates. createGitHubWebhook() als Funktion in
+        lib/github-api.ts extrahiert. Projekt-Erstellungsseite ruft Webhook-Setup
+        automatisch auf.
+      why: >
+        TB-Nummern machen die Verlinkung von Commits/PRs zu Tasks explizit und
+        konventionsbasiert — wie JIRA-Nummern (PROJ-123). Automatisches Webhook-Setup
+        senkt die Onboarding-Hürde: Nutzer müssen nichts manuell in GitHub konfigurieren.
+      technical_details: >
+        7 geänderte Dateien, +154 Zeilen. Task.number auto-increment via Prisma
+        (zählt Tasks pro Projekt). Regex \bTB-(\d+)\b in Webhook-Handler.
+      side_effects: >
+        Prisma-Migration erforderlich (Task.number Feld).
+        Projekterstellungsseite ruft jetzt GitHub-API auf → GITHUB_TOKEN Pflicht.
+    code_changes:
+      - file: "prisma/schema.prisma"
+        change_type: "modified"
+        lines_added: 1
+        lines_removed: 0
+        diff_summary: "Task.number Int? hinzugefügt"
+      - file: "app/api/webhook/github/route.ts"
+        change_type: "modified"
+        lines_added: 80
+        lines_removed: 1
+        diff_summary: "TB-{n} Pattern-Matching in Commits und PR-Titeln"
+      - file: "lib/github-api.ts"
+        change_type: "modified"
+        lines_added: 38
+        lines_removed: 0
+        diff_summary: "createGitHubWebhook() extrahiert"
+      - file: "app/(app)/projects/new/page.tsx"
+        change_type: "modified"
+        lines_added: 25
+        lines_removed: 1
+        diff_summary: "Automatisches Webhook-Setup bei Projekt-Erstellung"
+    dependencies: []
+    related_entries:
+      - "entry-20260327-104716-fe01"

@@ -1,0 +1,23 @@
+{
+  "id": "feat-20260327-001",
+  "title": "Epic/Feature/Task CRUD — UI Modals + API Routes",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-27T07:20:15Z",
+  "updated_at": "2026-03-27T07:20:15Z",
+  "ticket_id": "",
+  "tags": ["crud", "modals", "api", "planning"],
+  "summary": "Vollständige CRUD-Funktionalität für Epics, Features und Tasks: UI-Modals mit Formularen sowie alle REST-API-Routen (GET/POST/PATCH/DELETE).",
+  "business_context": "Ohne CRUD war die Planungsansicht read-only. Nutzer konnten keine Tickets anlegen, bearbeiten oder löschen.",
+  "affected_components": ["app/api/projects/[id]/epics/", "app/api/tasks/", "components/planning/modals/", "components/planning/PlanningLayout.tsx", "components/planning/FeatureCard.tsx", "lib/api/"],
+  "affected_users": "Alle Nutzer der Planungsansicht",
+  "acceptance_criteria": ["Epics erstellen, bearbeiten und löschen", "Features erstellen, bearbeiten und löschen", "Tasks erstellen, bearbeiten und löschen", "YAML-Ticket-Export via /api/projects/[id]/tickets", "Auth-Middleware für alle API-Routen"],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260327-072015-fe01"],
+  "_source_yaml": "human/features/crud-modals.yaml"
+}

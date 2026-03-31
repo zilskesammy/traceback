@@ -1,0 +1,156 @@
+_machine_ref: "machine/refactoring/prisma-schema-changelog-models.json"
+
+meta:
+  id: "refac-20260331-001"
+  title: "Prisma Schema: Epic/Feature/Task durch ChangelogFeature/Entry/CodeChange ersetzen"
+  category: "refactoring"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-31T00:00:00Z"
+  updated_at: "2026-03-31T12:00:00Z"
+  ticket_id: ""
+  tags:
+    - prisma
+    - schema
+    - database
+    - changelog
+    - refactoring
+
+  description:
+    summary: >
+      Das bestehende Ticket-Hierarchie-Schema (Epic → Feature → Task → TaskComment)
+      wurde vollständig entfernt und durch ein neues Changelog-orientiertes Datenmodell
+      ersetzt (ChangelogFeature → ChangelogEntry → CodeChange). SessionStep und
+      LinkedPR wurden von Task auf ChangelogFeature umverdrahtet.
+    motivation: >
+      Das alte Modell war auf klassisches Ticket-Management ausgelegt.
+      Das Traceback-Projekt braucht ein Datenmodell das Agent-Aktivitäten,
+      Code-Änderungen und Changelog-Synchronisation nativ abbilden kann.
+      Der Wechsel ermöglicht strukturiertes Logging von Agent-Aktionen
+      direkt in der Datenbank mit vollständiger Hierarchie (Feature → Entry → CodeChange).
+    breaking_changes: >
+      Breaking: Tabellen Epic, Feature, Task, TaskComment und Enums TicketStatus,
+      DelegateStatus wurden gelöscht. Bestehende Datensätze (4 Epics, 9 Features,
+      9 Tasks) sind unwiderruflich entfernt (--accept-data-loss). Alle API-Endpunkte
+      und Services die diese Modelle verwenden müssen migriert werden.
+    affected_components:
+      - "prisma/schema.prisma"
+    affected_users: "Alle Backend-Services die Epic/Feature/Task-Modelle nutzen"
+
+entries:
+  - id: "entry-20260331-000000-be01"
+    timestamp: "2026-03-31T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "Prisma Schema vollständig auf Changelog-Datenmodell umgebaut"
+    description:
+      what: >
+        prisma/schema.prisma komplett neu geschrieben:
+        (1) Modelle Epic, Feature, Task, TaskComment entfernt.
+        (2) Enums TicketStatus und DelegateStatus entfernt.
+        (3) SessionStep von ticketId/Task auf featureId/ChangelogFeature umverdrahtet,
+            Index von [ticketId, sequence] auf [featureId, sequence] geändert.
+        (4) LinkedPR von ticketId/Task auf featureId/ChangelogFeature umverdrahtet.
+        (5) Agent.delegatedTasks Task[] Relation entfernt.
+        (6) 7 neue Enums hinzugefügt: ChangelogItemType, ChangelogStatus,
+            ChangelogPriority, ChangelogSource, ChangelogAgentType,
+            ChangelogAction, CodeChangeType.
+        (7) 3 neue Modelle hinzugefügt: ChangelogFeature (self-referential
+            Hierarchie via "FeatureHierarchy"), ChangelogEntry, CodeChange.
+        (8) Project.changelogFeatures Relation hinzugefügt, Project.epics entfernt.
+        (9) Schema validiert (prisma validate), DB gepusht (prisma db push
+            --accept-data-loss), Client regeneriert (prisma generate).
+      why: >
+        Das neue Schema bildet Agent-Aktivitäten direkt ab: Ein ChangelogFeature
+        entspricht einem Arbeitspaket (EPIC/FEATURE/BUGFIX/TASK), ChangelogEntry
+        ist ein einzelner Agent-Log-Eintrag mit Kontext (what/why/technicalDetails),
+        CodeChange beschreibt einzelne Datei-Änderungen. SessionStep und LinkedPR
+        gehören jetzt zu ChangelogFeature statt zu Task — das passt zur neuen
+        semantischen Rolle dieser Modelle im Agent-Workflow.
+      technical_details: >
+        ChangelogFeature nutzt eine self-referential Relation "FeatureHierarchy"
+        (parent/children) für beliebig tiefe Hierarchien. Indizes auf projectId,
+        parentId, type und status für typische Query-Patterns.
+        ChangelogEntry hat Indizes auf featureId, timestamp und agentType.
+        CodeChange ist append-only mit Index auf entryId und file.
+        Alle String-IDs sind cuid() oder manuell gesetzt (kein auto-increment)
+        um externe IDs (z.B. aus Changelog-Dateien) direkt zu verwenden.
+        DB push mit --accept-data-loss war nötig da 4 Epics, 9 Features,
+        9 Tasks unwiederbringlich gelöscht wurden — bewusste Entscheidung,
+        Daten kommen später aus Changelog-Sync.
+      side_effects: >
+        Alle TypeScript-Dateien die PrismaClient mit Epic/Feature/Task-Typen
+        nutzen werden build-time-Fehler haben. Betroffen sind wahrscheinlich:
+        API-Routes, Services und tRPC-Router für das alte Ticket-System.
+        Prisma Client wurde neu generiert — node_modules/@prisma/client
+        enthält keine Epic/Task/Feature-Typen mehr.
+    code_changes:
+      - file: "prisma/schema.prisma"
+        change_type: "modified"
+        lines_added: 166
+        lines_removed: 133
+        diff_summary: >
+          Entfernt: Epic, Feature, Task, TaskComment, TicketStatus, DelegateStatus.
+          Geändert: SessionStep (ticketId→featureId, Task→ChangelogFeature),
+          LinkedPR (ticketId→featureId, Task→ChangelogFeature),
+          Agent (delegatedTasks entfernt),
+          Project (epics entfernt, changelogFeatures hinzugefügt).
+          Hinzugefügt: ChangelogFeature, ChangelogEntry, CodeChange und
+          7 neue Enums (ChangelogItemType, ChangelogStatus, ChangelogPriority,
+          ChangelogSource, ChangelogAgentType, ChangelogAction, CodeChangeType).
+    dependencies: []
+    related_entries: []
+
+  - id: "entry-20260331-120000-be02"
+    timestamp: "2026-03-31T12:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "modified"
+    summary: "TypeScript-Typen: planning.ts reduziert, changelog.ts neu erstellt"
+    description:
+      what: >
+        types/planning.ts auf reine Diff-Typen (DiffLine, FileDiff) reduziert —
+        alle Planning/Ticket-Typen (PlanningProject, PlanningEpic, PlanningFeature,
+        PlanningTask, TicketStatus) entfernt.
+        types/changelog.ts neu erstellt mit allen serialisierten UI-Typen für
+        das Changelog-Datenmodell: ChangelogItemType, ChangelogStatus,
+        ChangelogPriority, ChangelogSource, ChangelogAgentType, ChangelogAction,
+        CodeChangeType, UICodeChange, UIChangelogEntry, UIChangelogFeature, UIProject.
+      why: >
+        Nach dem Prisma-Schema-Umbau (Task 1) existieren die alten Ticket-Modelle
+        nicht mehr in der Datenbank. Die TypeScript-Typen in planning.ts müssen
+        diese Realität widerspiegeln. changelog.ts stellt die serialisierten
+        UI-Typen bereit die Next.js Server Components an Client Components übergeben
+        (Dates als ISO-Strings statt Date-Objekte, da Server/Client-Boundary).
+      technical_details: >
+        ChangelogAgentType verwendet englische Enum-Werte entsprechend dem Prisma-Schema:
+        ARCHITECT (nicht ARCHITEKT), PROJECT_MANAGER (nicht PROJEKTLEITER),
+        DOCUMENTATION (nicht DOKUMENTATION). UIChangelogFeature enthält ein
+        optionales _entryCount-Feld für List-Views ohne vollständige Entry-Hydration.
+        TypeScript-Fehler in app/(app)/projects/[id]/page.tsx sind erwartet
+        und betreffen Code der noch auf die alten Planning-Typen referenziert —
+        diese Datei ist Scope einer Folge-Task.
+      side_effects: >
+        Importierende Dateien die PlanningProject/PlanningEpic/PlanningFeature/
+        PlanningTask/TicketStatus aus @/types/planning importieren haben
+        TypeScript-Buildfehler bis sie auf die neuen Typen migriert werden.
+    code_changes:
+      - file: "types/planning.ts"
+        change_type: "modified"
+        lines_added: 7
+        lines_removed: 62
+        diff_summary: >
+          Alle Ticket-Hierarchie-Typen entfernt (TicketStatus, PlanningTask,
+          PlanningFeature, PlanningEpic, PlanningProject). Nur DiffLine und
+          FileDiff behalten.
+      - file: "types/changelog.ts"
+        change_type: "added"
+        lines_added: 68
+        lines_removed: 0
+        diff_summary: >
+          Neue Datei mit 7 Union-Type-Aliases für Enums und 4 Interfaces:
+          UICodeChange, UIChangelogEntry, UIChangelogFeature, UIProject.
+    dependencies: []
+    related_entries:
+      - "entry-20260331-000000-be01"

@@ -1,0 +1,83 @@
+_machine_ref: "machine/features/api-key-system.json"
+
+meta:
+  id: "feat-20260327-002"
+  title: "API-Key-System für AI-Agent-Zugriff"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-27T08:19:05Z"
+  updated_at: "2026-03-27T08:19:05Z"
+  ticket_id: ""
+  tags:
+    - security
+    - api
+    - auth
+    - agents
+
+  description:
+    summary: >
+      API-Key-Verwaltungssystem für programmatischen Agent-Zugriff.
+      Keys werden gehasht gespeichert, einmalig angezeigt und über eine
+      Settings-Seite verwaltet.
+    business_context: >
+      AI-Agenten (z.B. Claude) brauchen einen sicheren Weg auf die Ticket-API
+      zuzugreifen ohne Session-Auth. API-Keys sind der Standard-Ansatz
+      für Machine-to-Machine-Kommunikation.
+    affected_components:
+      - "app/(app)/projects/[id]/settings/page.tsx"
+      - "app/api/keys/route.ts"
+      - "app/api/projects/[id]/tickets/route.ts"
+      - "app/api/tasks/[taskId]/route.ts"
+      - "components/settings/ApiKeysSection.tsx"
+      - "lib/apiKey.ts"
+    affected_users: "Entwickler und AI-Agenten die auf die Ticket-API zugreifen"
+    acceptance_criteria:
+      - "API-Keys erstellen und löschen via Settings-UI"
+      - "Key wird einmalig im Klartext angezeigt, dann nur noch gehasht gespeichert"
+      - "x-api-key Header für /api/projects/[id]/tickets und /api/tasks/[taskId]"
+      - "JSON und YAML via Accept-Header"
+
+entries:
+  - id: "entry-20260327-081905-fe01"
+    timestamp: "2026-03-27T08:19:05Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "API-Key-System mit Settings-UI und gesicherter Key-Verwaltung implementiert"
+    description:
+      what: >
+        lib/apiKey.ts mit hashKey() und validateApiKey(). POST/DELETE /api/keys
+        für Key-Management (Session-Auth). /api/projects/[id]/tickets und
+        /api/tasks/[taskId] auf x-api-key Header umgestellt. Settings-Seite als
+        Server Component mit ApiKeysSection-Client-Component: Create-Modal,
+        Key-Reveal-Modal (einmaliges Kopieren), Delete-Funktion.
+      why: >
+        AI-Agenten müssen programmatisch auf Tickets zugreifen. Session-Cookies
+        funktionieren nicht für Machine-to-Machine. API-Keys sind die sichere,
+        standardkonforme Lösung.
+      technical_details: >
+        Keys werden mit SHA-256 gehasht, nur der Hash wird in der DB gespeichert.
+        Der Klartext-Key wird einmalig nach Erstellung zurückgegeben und nicht
+        gespeichert. validateApiKey() vergleicht Hashes constant-time.
+      side_effects: >
+        Bestehende /api/tickets und /api/tasks/[taskId] Routen erheblich umgebaut
+        (Auth-Logik neu). Accept-Header-Negotiation für JSON/YAML hinzugefügt.
+    code_changes:
+      - file: "lib/apiKey.ts"
+        change_type: "added"
+        lines_added: 40
+        lines_removed: 0
+        diff_summary: "Key-Hashing und Validierungs-Utilities"
+      - file: "components/settings/ApiKeysSection.tsx"
+        change_type: "added"
+        lines_added: 508
+        lines_removed: 0
+        diff_summary: "Vollständige Settings-UI für Key-Verwaltung"
+      - file: "app/api/keys/route.ts"
+        change_type: "added"
+        lines_added: 118
+        lines_removed: 0
+        diff_summary: "POST/DELETE Endpunkte für Key-Management"
+    dependencies: []
+    related_entries: []

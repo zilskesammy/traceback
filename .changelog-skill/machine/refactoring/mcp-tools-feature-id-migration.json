@@ -1,0 +1,30 @@
+{
+  "id": "refac-20260331-003",
+  "title": "MCP Tools: ticket_id/ticketId zu feature_id/featureId migriert, TaskComment-Tool entfernt",
+  "category": "refactoring",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-31T14:00:00Z",
+  "updated_at": "2026-03-31T15:00:00Z",
+  "ticket_id": "",
+  "tags": ["mcp", "refactoring", "changelog-feature", "feature-id"],
+  "summary": "Alle vier MCP-Tool-Dateien auf ChangelogFeature-Modell umgestellt. ticket_id/ticketId zu feature_id/featureId umbenannt. TaskComment-Tool entfernt.",
+  "business_context": null,
+  "affected_components": [
+    "lib/mcp/tools/sessions.ts",
+    "lib/mcp/tools/links.ts",
+    "lib/mcp/tools/tickets.ts",
+    "lib/mcp/tools/comments.ts"
+  ],
+  "affected_users": "MCP-Clients (Agents, Claude Code) die die traceback_* Tools verwenden",
+  "acceptance_criteria": [],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "motivation": "Prisma-Schema wurde von Epic/Feature/Task auf ChangelogFeature/ChangelogEntry/CodeChange umgestellt (refac-20260331-001). MCP-Tools mussten nachgezogen werden.",
+  "breaking_changes": "feature_id statt ticket_id in traceback_log_session_step und traceback_link_pr. traceback_add_comment existiert nicht mehr. traceback_list_tickets hat andere Parameter.",
+  "entries_count": 2,
+  "entries": ["entry-20260331-140000-be01", "entry-20260331-150000-be02"],
+  "_source_yaml": "human/refactoring/mcp-tools-feature-id-migration.yaml"
+}

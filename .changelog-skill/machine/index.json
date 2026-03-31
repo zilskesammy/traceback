@@ -1,0 +1,77 @@
+{
+  "project": "traceback",
+  "last_updated": "2026-03-31T15:00:00Z",
+  "total_entries": 9,
+  "total_files": 5,
+  "categories": {
+    "features": {
+      "count": 1,
+      "files": [
+        {
+          "id": "feat-20260331-001",
+          "path": "machine/features/changelog-sync-read-api.json",
+          "yaml_path": "human/features/changelog-sync-read-api.yaml",
+          "title": "Changelog Sync + Read API Endpoints",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 3,
+          "last_entry": "2026-03-31T13:02:00Z"
+        }
+      ]
+    },
+    "bugfixes": {"count": 0, "files": []},
+    "testing": {"count": 0, "files": []},
+    "refactoring": {
+      "count": 3,
+      "files": [
+        {
+          "id": "refac-20260331-003",
+          "path": "machine/refactoring/mcp-tools-feature-id-migration.json",
+          "yaml_path": "human/refactoring/mcp-tools-feature-id-migration.yaml",
+          "title": "MCP Tools: ticket_id/ticketId zu feature_id/featureId migriert, TaskComment-Tool entfernt",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 2,
+          "last_entry": "2026-03-31T15:00:00Z"
+        },
+        {
+          "id": "refac-20260331-001",
+          "path": "machine/refactoring/prisma-schema-changelog-models.json",
+          "yaml_path": "human/refactoring/prisma-schema-changelog-models.yaml",
+          "title": "Prisma Schema: Epic/Feature/Task durch ChangelogFeature/Entry/CodeChange ersetzen",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 2,
+          "last_entry": "2026-03-31T12:00:00Z"
+        },
+        {
+          "id": "refac-20260331-002",
+          "path": "machine/refactoring/webhook-github-changelog-sync.json",
+          "yaml_path": "human/refactoring/webhook-github-changelog-sync.yaml",
+          "title": "GitHub Webhook: Task-Logik entfernt, Changelog-Sync-Trigger hinzugefügt",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-03-31T00:00:00Z"
+        }
+      ]
+    },
+    "infrastructure": {"count": 0, "files": []},
+    "documentation": {"count": 0, "files": []},
+    "configuration": {
+      "count": 1,
+      "files": [
+        {
+          "id": "conf-20260331-001",
+          "path": "machine/configuration/typescript-type-file-fixes.json",
+          "yaml_path": "human/configuration/typescript-type-file-fixes.yaml",
+          "title": "TypeScript type file fixes: UIChangelogEntry.createdAt, omitted relations comment, header comments",
+          "status": "completed",
+          "priority": "medium",
+          "entries_count": 1,
+          "last_entry": "2026-03-31T00:00:00Z"
+        }
+      ]
+    }
+  }
+}

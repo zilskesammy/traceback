@@ -239,11 +239,6 @@ enum PRStatus {
   CLOSED
 }
 
-enum AuthorType {
-  HUMAN
-  AGENT
-}
-
 enum ChangelogItemType {
   FEATURE
   BUGFIX
@@ -274,9 +269,9 @@ enum ChangelogAgentType {
   QA
   DEVOPS
   FULLSTACK
-  ARCHITEKT
-  PROJEKTLEITER
-  DOKUMENTATION
+  ARCHITECT
+  PROJECT_MANAGER
+  DOCUMENTATION
   SECURITY
   HUMAN
 }
@@ -330,6 +325,7 @@ model ChangelogFeature {
   @@index([parentId])
   @@index([type])
   @@index([status])
+  @@index([projectId, status])
 }
 
 model ChangelogEntry {
@@ -356,6 +352,7 @@ model ChangelogEntry {
   @@index([featureId])
   @@index([timestamp])
   @@index([agentType])
+  @@index([featureId, timestamp])
 }
 
 model CodeChange {

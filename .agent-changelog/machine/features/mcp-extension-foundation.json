@@ -1,0 +1,39 @@
+{
+  "id": "feat-20260330-001",
+  "title": "MCP Extension — Foundation (Dependencies + Schema + Seed)",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-30T00:00:00Z",
+  "updated_at": "2026-03-30T12:00:00Z",
+  "ticket_id": "",
+  "tags": ["mcp", "agents", "prisma", "schema", "database"],
+  "summary": "Foundation für die Traceback MCP Extension: MCP SDK installiert, Prisma-Schema um Agent/SessionStep/LinkedPR/TaskComment erweitert, neue Enums, Task-Delegate-Felder und 3 initiale Agents geseeded.",
+  "business_context": "AI-Agents (Claude Code, Devin, Cursor) sollen direkt Tasks aus Traceback empfangen, bearbeiten und Fortschritt zurückmelden. Dafür braucht das Datenmodell Agent-Entitäten, Session-Steps und LinkedPRs.",
+  "affected_components": [
+    "prisma/schema.prisma",
+    "prisma/seed-agents.ts",
+    "package.json",
+    "package-lock.json"
+  ],
+  "affected_users": "Interne Entwickler und AI-Agents. Keine Endnutzer-Auswirkung in dieser Phase.",
+  "acceptance_criteria": [
+    "@modelcontextprotocol/sdk@1.29.0 ist installiert",
+    "zod@^4 ist installiert",
+    "Agent, SessionStep, LinkedPR, TaskComment Models existieren in DB",
+    "DelegateStatus, SessionStepType, LinkType, PRStatus, AuthorType Enums existieren",
+    "Task hat delegateId und delegateStatus Felder",
+    "3 initiale Agents sind geseeded (claude-code, devin, cursor-agent)",
+    "npx tsc --noEmit fehlerfrei"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 2,
+  "entries": [
+    "entry-20260330-000000-be01",
+    "entry-20260330-120000-be02"
+  ],
+  "_source_yaml": "human/features/mcp-extension-foundation.yaml"
+}

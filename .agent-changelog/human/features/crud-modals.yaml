@@ -1,0 +1,82 @@
+_machine_ref: "machine/features/crud-modals.json"
+
+meta:
+  id: "feat-20260327-001"
+  title: "Epic/Feature/Task CRUD — UI Modals + API Routes"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-03-27T07:20:15Z"
+  updated_at: "2026-03-27T07:20:15Z"
+  ticket_id: ""
+  tags:
+    - crud
+    - modals
+    - api
+    - planning
+
+  description:
+    summary: >
+      Vollständige CRUD-Funktionalität für Epics, Features und Tasks:
+      UI-Modals mit Formularen sowie alle REST-API-Routen (GET/POST/PATCH/DELETE).
+    business_context: >
+      Ohne CRUD-Funktionalität war die Planungsansicht read-only. Nutzer
+      konnten keine Tickets anlegen, bearbeiten oder löschen — nur importierte
+      Daten betrachten.
+    affected_components:
+      - "app/api/projects/[id]/epics/"
+      - "app/api/tasks/"
+      - "components/planning/modals/"
+      - "components/planning/PlanningLayout.tsx"
+      - "components/planning/FeatureCard.tsx"
+      - "lib/api/"
+    affected_users: "Alle Nutzer der Planungsansicht"
+    acceptance_criteria:
+      - "Epics erstellen, bearbeiten und löschen"
+      - "Features erstellen, bearbeiten und löschen"
+      - "Tasks erstellen, bearbeiten und löschen"
+      - "YAML-Ticket-Export via /api/projects/[id]/tickets"
+      - "Auth-Middleware für alle API-Routen"
+
+entries:
+  - id: "entry-20260327-072015-fe01"
+    timestamp: "2026-03-27T07:20:15Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Epic/Feature/Task CRUD mit Modals und API-Routen vollständig implementiert"
+    description:
+      what: >
+        EpicModal, FeatureModal, TaskModal und TicketModal als React-Komponenten.
+        Dazu alle REST-API-Routen: Epics (GET/POST/PATCH/DELETE), Features, Tasks.
+        YAML-Ticket-Export-Endpunkte. Auth-Middleware und YAML-Utils als Bibliotheken.
+        PlanningLayout, FeatureBoard und FeatureCard mit Mutations-Buttons erweitert.
+      why: >
+        Kernanforderung: Die Planungs-App soll Tickets vollständig verwalten können,
+        nicht nur anzeigen. CRUD ist die Grundlage für alle weiteren Features.
+      technical_details: >
+        19 neue/geänderte Dateien. API-Routen folgen Next.js App Router Convention.
+        lib/api/auth-middleware.ts und lib/api/yaml.ts als wiederverwendbare Utilities.
+        YAML-Export über Accept-Header-Negotiation (JSON vs. YAML).
+      side_effects: >
+        Package.json um js-yaml und weitere Dependencies erweitert.
+        Bestehende FeatureCard und PlanningLayout erheblich umgebaut (+2592 Zeilen gesamt).
+    code_changes:
+      - file: "app/api/projects/[id]/epics/ (komplett)"
+        change_type: "added"
+        lines_added: 978
+        lines_removed: 0
+        diff_summary: "Alle Epic/Feature/Task REST-Routen"
+      - file: "components/planning/modals/"
+        change_type: "added"
+        lines_added: 748
+        lines_removed: 0
+        diff_summary: "EpicModal, FeatureModal, TaskModal, TicketModal"
+      - file: "lib/api/auth-middleware.ts"
+        change_type: "added"
+        lines_added: 67
+        lines_removed: 0
+        diff_summary: "Auth-Middleware für API-Routen"
+    dependencies:
+      - "js-yaml"
+    related_entries: []

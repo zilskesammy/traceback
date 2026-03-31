@@ -1,0 +1,23 @@
+{
+  "id": "feat-20260327-002",
+  "title": "API-Key-System für AI-Agent-Zugriff",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-03-27T08:19:05Z",
+  "updated_at": "2026-03-27T08:19:05Z",
+  "ticket_id": "",
+  "tags": ["security", "api", "auth", "agents"],
+  "summary": "API-Key-Verwaltungssystem für programmatischen Agent-Zugriff. Keys werden gehasht gespeichert, einmalig angezeigt und über eine Settings-Seite verwaltet.",
+  "business_context": "AI-Agenten brauchen sicheren Zugriff auf die Ticket-API ohne Session-Auth. API-Keys sind der Standard für Machine-to-Machine.",
+  "affected_components": ["app/(app)/projects/[id]/settings/page.tsx", "app/api/keys/route.ts", "app/api/projects/[id]/tickets/route.ts", "app/api/tasks/[taskId]/route.ts", "components/settings/ApiKeysSection.tsx", "lib/apiKey.ts"],
+  "affected_users": "Entwickler und AI-Agenten die auf die Ticket-API zugreifen",
+  "acceptance_criteria": ["API-Keys erstellen und löschen via Settings-UI", "Key wird einmalig im Klartext angezeigt", "x-api-key Header für Tickets und Task Endpoints", "JSON und YAML via Accept-Header"],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260327-081905-fe01"],
+  "_source_yaml": "human/features/api-key-system.yaml"
+}

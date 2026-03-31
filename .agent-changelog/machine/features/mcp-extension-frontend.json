@@ -1,0 +1,39 @@
+{
+  "id": "feat-20260330-002",
+  "title": "MCP Extension — Frontend Components (SessionViewer, AgentBadge, AgentDelegation)",
+  "category": "feature",
+  "status": "in_progress",
+  "priority": "high",
+  "created_at": "2026-03-30T12:00:00Z",
+  "updated_at": "2026-03-30T12:00:00Z",
+  "ticket_id": "Tasks 18–22",
+  "tags": ["mcp", "agents", "delegation", "session", "frontend"],
+  "summary": "Fünf neue Tasks (18–22) für das MCP Extension Feature implementiert: Typ-Updates, drei neue Komponenten (SessionViewer, AgentBadge, AgentDelegation) sowie Integration in TaskModal und FeatureCard.",
+  "business_context": "AI-Agenten können jetzt einem Task zugewiesen werden. Der Nutzer sieht den Agent-Status direkt in der Task-Liste und kann im TaskModal Agent wechseln sowie die vollständige Session-Timeline einsehen.",
+  "affected_components": [
+    "types/planning.ts",
+    "app/(app)/projects/[id]/page.tsx",
+    "components/planning/SessionViewer.tsx",
+    "components/planning/AgentBadge.tsx",
+    "components/planning/AgentDelegation.tsx",
+    "components/planning/modals/TaskModal.tsx",
+    "components/planning/FeatureCard.tsx"
+  ],
+  "affected_users": "Alle Nutzer, die Tasks mit AI-Agenten delegieren",
+  "acceptance_criteria": [
+    "PlanningTask Interface hat delegateId und delegateStatus",
+    "serializeTask gibt delegateId und delegateStatus weiter",
+    "SessionViewer zeigt Timeline von Agent-Steps mit Expand/Collapse",
+    "AgentBadge zeigt Avatar + Statusdot mit Pulsanimation bei WORKING",
+    "AgentDelegation erlaubt Assign/Change/Remove eines Agents via Dropdown",
+    "TaskModal hat Details/Session-Trail-Tabs im Edit-Modus",
+    "FeatureCard zeigt AgentBadge in Task-Zeilen wenn delegateId gesetzt"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260330-120000-fe01"],
+  "_source_yaml": "human/features/mcp-extension-frontend.yaml"
+}

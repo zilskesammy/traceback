@@ -1,0 +1,77 @@
+<h2>Zwei Ansätze für das einheitliche Datenmodell</h2>
+<p class="subtitle">Wie werden Changelog-Daten und Traceback-Struktur zusammengeführt?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Flaches Modell — Item + Entry + CodeChange</h3>
+      <p>Epic/Feature/Task werden durch ein einziges <strong>Item</strong>-Modell ersetzt. Jedes Item kann Einträge (Entries) und Codeänderungen haben. Keine Hierarchie — Gruppierung über Tags oder parentId.</p>
+
+      <div style="font-size:11px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#a78bfa;font-weight:700;margin-bottom:6px">Item</div>
+          <div style="color:#888;line-height:1.8">id (aus Changelog)<br>projectId<br>type: FEATURE|BUGFIX|TASK<br>status: PLANNED|IN_PROGRESS|COMPLETED<br>priority: HIGH|MEDIUM|LOW<br>title<br>summary<br>businessContext<br>rootCause (bugfix)<br>acceptanceCriteria[]<br>affectedComponents[]<br>affectedUsers<br>tags[]<br>source: CHANGELOG|UI<br>sourceFile</div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#10b981;font-weight:700;margin-bottom:6px">Entry</div>
+          <div style="color:#888;line-height:1.8">id (aus Changelog)<br>itemId (FK)<br>timestamp<br>agentType: FE|BE|QA|...|HUMAN<br>agentName<br>action: CREATED|MODIFIED|FIXED<br>summary<br>what<br>why<br>technicalDetails<br>sideEffects<br>dependencies[]<br>relatedEntryIds[]<br>linesAdded (gesamt)<br>linesRemoved (gesamt)</div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#f59e0b;font-weight:700;margin-bottom:6px">CodeChange</div>
+          <div style="color:#888;line-height:1.8">id<br>entryId (FK)<br>file<br>changeType: ADDED|MODIFIED|REMOVED<br>linesAdded<br>linesRemoved<br>diffSummary</div>
+        </div>
+      </div>
+
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pro</h4><ul><li>Direkte 1:1 Abbildung der Changelog-Struktur</li><li>Einfache Abfragen</li><li>Klar für Agents: ein Modell</li></ul></div>
+        <div class="cons"><h4>Con</h4><ul><li>Keine native Hierarchie (Epic→Feature→Task)</li><li>Spätere Planung braucht parentId-Logik</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Hierarchisches Modell — Feature + Entry + CodeChange</h3>
+      <p>Bestehende Hierarchie bleibt als <strong>Feature</strong> (ersetzt Epic+Feature+Task) mit optionalem <code>parentId</code>. Changelog-Features landen als Feature-Einträge, Entries werden angehängt.</p>
+
+      <div style="font-size:11px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#a78bfa;font-weight:700;margin-bottom:6px">Feature</div>
+          <div style="color:#888;line-height:1.8">id<br>projectId<br><strong style="color:#a78bfa">parentId? (self-ref)</strong><br>type: FEATURE|BUGFIX|EPIC|TASK<br>status<br>priority<br>title<br>summary<br>businessContext<br>rootCause (bugfix)<br>acceptanceCriteria[]<br>affectedComponents[]<br>affectedUsers<br>tags[]<br>source<br>sourceFile</div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#10b981;font-weight:700;margin-bottom:6px">Entry</div>
+          <div style="color:#888;line-height:1.8">id<br>featureId (FK)<br>timestamp<br>agentType<br>agentName<br>action<br>summary<br>what / why<br>technicalDetails<br>sideEffects<br>dependencies[]<br>relatedEntryIds[]<br>linesAdded / linesRemoved</div>
+        </div>
+        <div style="background:#1e1e2e;border-radius:6px;padding:8px;border:1px solid #333">
+          <div style="color:#f59e0b;font-weight:700;margin-bottom:6px">CodeChange</div>
+          <div style="color:#888;line-height:1.8">id<br>entryId (FK)<br>file<br>changeType<br>linesAdded<br>linesRemoved<br>diffSummary</div>
+        </div>
+      </div>
+
+      <div class="pros-cons" style="margin-top:10px">
+        <div class="pros"><h4>Pro</h4><ul><li>Hierarchie für spätere Planung vorbereitet</li><li>Epics/Tasks über type+parentId möglich</li><li>Flexibler für Claude→UI→Execute-Workflow</li></ul></div>
+        <div class="cons"><h4>Con</h4><ul><li>self-referential FK etwas komplexer</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px;background:#1e1e2e;border-radius:8px;padding:12px;border:1px solid #2d2d3d">
+  <div class="label" style="margin-bottom:8px">Bestehende Modelle bleiben in beiden Ansätzen erhalten</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px">
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">Project ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">User ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">Agent ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">SessionStep ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">LinkedPR ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">Commit ✓</span>
+    <span style="background:#2d2d3d;padding:3px 8px;border-radius:4px;color:#888">ApiKey ✓</span>
+    <span style="background:#ff4444;padding:3px 8px;border-radius:4px;color:#fff">Epic ✗ ersetzt</span>
+    <span style="background:#ff4444;padding:3px 8px;border-radius:4px;color:#fff">Feature ✗ ersetzt</span>
+    <span style="background:#ff4444;padding:3px 8px;border-radius:4px;color:#fff">Task ✗ ersetzt</span>
+    <span style="background:#ff4444;padding:3px 8px;border-radius:4px;color:#fff">TaskComment ✗ in Entry aufgegangen</span>
+  </div>
+</div>

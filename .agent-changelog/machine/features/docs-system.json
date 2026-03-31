@@ -1,0 +1,23 @@
+{
+  "id": "feat-20260326-001",
+  "title": "Mintlify-Style Docs System",
+  "category": "feature",
+  "status": "completed",
+  "priority": "medium",
+  "created_at": "2026-03-26T17:25:58Z",
+  "updated_at": "2026-03-26T17:25:58Z",
+  "ticket_id": "",
+  "tags": ["docs", "mdx", "search"],
+  "summary": "Vollständiges Dokumentationssystem im Mintlify-Stil mit MDX-Rendering, Fuse.js-Suche, Inhaltsverzeichnis und Shiki-Syntax-Highlighting.",
+  "business_context": "Nutzer und externe Entwickler brauchen strukturierte Dokumentation für die Agent-API und GitHub-Integration.",
+  "affected_components": ["app/docs/[[...slug]]/page.tsx", "app/docs/layout.tsx", "components/docs/", "content/docs/", "lib/docs/"],
+  "affected_users": "Alle Nutzer und externe Entwickler",
+  "acceptance_criteria": ["/docs Route mit Sidebar-Navigation", "MDX-Rendering mit Syntax-Highlighting", "Fuse.js Volltext-Suche", "Inhaltsverzeichnis (ToC) pro Seite", "Inhalt: Getting Started, Concepts, Agent API, GitHub Integration"],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260326-172558-fe01"],
+  "_source_yaml": "human/features/docs-system.yaml"
+}

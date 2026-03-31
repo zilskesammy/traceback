@@ -1,0 +1,9 @@
+{"type":"server-started","port":59859,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:59859","screen_dir":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content","state_dir":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/state"}
+{"type":"screen-added","file":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content/changelog-location.html"}
+{"type":"screen-added","file":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content/waiting-1.html"}
+{"type":"screen-added","file":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content/approaches.html"}
+{"type":"screen-added","file":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content/waiting-2.html"}
+{"type":"screen-added","file":"/Users/sam_zahra_shop/traceback/.superpowers/brainstorm/6604-1774906017/content/full-design.html"}
+{"type":"server-stopped","reason":"idle timeout"}
+{"source":"user-event","type":"click","text":"✓\n      Ja, Design bestätigtWeiter zum vollständigen Spec-Dokument","choice":"yes","id":null,"timestamp":1774940392974}
+{"source":"user-event","type":"click","text":"✓\n      Ja, Design bestätigtWeiter zum vollständigen Spec-Dokument","choice":"yes","id":null,"timestamp":1774940397162}
