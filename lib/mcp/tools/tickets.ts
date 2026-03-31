@@ -62,13 +62,13 @@ export function registerTicketTools(server: McpServer, _auth: McpAuthContext) {
     "traceback_get_ticket",
     "Get full changelog feature with all entries and code changes.",
     {
-      ticket_id: z.string().describe("ChangelogFeature ID"),
+      feature_id: z.string().describe("ChangelogFeature ID"),
       include_session: z.boolean().optional().describe("Include session log, default true"),
     },
-    async ({ ticket_id, include_session }) => {
+    async ({ feature_id, include_session }) => {
       try {
         const feature = await db.changelogFeature.findUnique({
-          where: { id: ticket_id },
+          where: { id: feature_id },
           include: {
             entries: {
               orderBy: { timestamp: "asc" },
@@ -83,7 +83,7 @@ export function registerTicketTools(server: McpServer, _auth: McpAuthContext) {
         let sessionLog: any[] = [];
         if (include_session !== false) {
           sessionLog = await db.sessionStep.findMany({
-            where: { featureId: ticket_id },
+            where: { featureId: feature_id },
             orderBy: { sequence: "asc" },
           });
         }
@@ -135,12 +135,12 @@ export function registerTicketTools(server: McpServer, _auth: McpAuthContext) {
     "traceback_update_ticket",
     "Update a changelog feature's status or other fields.",
     {
-      ticket_id: z.string().describe("ChangelogFeature ID"),
+      feature_id: z.string().describe("ChangelogFeature ID"),
       status: z.enum(["planned", "in-progress", "completed"]).optional(),
       title: z.string().optional(),
       summary: z.string().optional(),
     },
-    async ({ ticket_id, status, title, summary }) => {
+    async ({ feature_id, status, title, summary }) => {
       try {
         const updates: Record<string, unknown> = {};
         if (status !== undefined) updates.status = toDbStatus(status);
@@ -148,7 +148,7 @@ export function registerTicketTools(server: McpServer, _auth: McpAuthContext) {
         if (summary !== undefined) updates.summary = summary;
 
         const feature = await db.changelogFeature.update({
-          where: { id: ticket_id },
+          where: { id: feature_id },
           data: updates,
         });
         return { content: [{ type: "text", text: JSON.stringify(serializeFeature(feature), null, 2) }] };
