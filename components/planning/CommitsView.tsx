@@ -2,7 +2,8 @@
 // components/planning/CommitsView.tsx — Commit-Timeline für ein Projekt
 
 import { useEffect, useState } from "react";
-import type { TicketStatus } from "@/types/planning";
+// TicketStatus removed — inline definition
+type TicketStatus = string;
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
