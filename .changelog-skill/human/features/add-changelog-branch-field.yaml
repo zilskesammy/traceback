@@ -1,0 +1,78 @@
+_machine_ref: "machine/features/add-changelog-branch-field.json"
+
+meta:
+  id: "feat-20260402-001"
+  title: "Add changelogBranch field to Project model"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-04-02T00:00:00Z"
+  updated_at: "2026-04-02T00:00:00Z"
+  ticket_id: ""
+  tags:
+    - database
+    - schema
+    - changelog
+    - configuration
+
+  description:
+    summary: >
+      Added optional changelogBranch String? field to the Prisma Project model,
+      enabling changelog sync to read from a configurable branch instead of
+      always using defaultBranch.
+    business_context: >
+      Multi-branch changelog synchronization requires projects to optionally
+      specify a separate branch for changelog tracking. This field allows
+      fine-grained control over which branch contains authoritative changelog
+      entries, improving flexibility for teams with complex branching strategies.
+    affected_components:
+      - "prisma/schema.prisma"
+      - "@prisma/client (generated types)"
+    affected_users: "All projects using changelog sync feature"
+    acceptance_criteria:
+      - "changelogBranch field added as optional String to Project model"
+      - "Database schema synced successfully with npx prisma db push"
+      - "Prisma client types generated correctly"
+      - "No TypeScript compilation errors from schema change"
+      - "Change committed to feat/changelog-sync branch"
+
+entries:
+  - id: "entry-20260402-000000-be01"
+    timestamp: "2026-04-02T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Add changelogBranch field to Project model in Prisma schema"
+    description:
+      what: >
+        Added new optional field changelogBranch String? to the Project model
+        in prisma/schema.prisma, positioned after the existing defaultBranch field.
+      why: >
+        The changelog sync mechanism needs to support reading from a configurable
+        branch per project. Previously, it always used defaultBranch. This new
+        optional field allows projects to specify a dedicated changelog branch
+        while remaining backward-compatible (field is nullable with no default).
+      technical_details: >
+        Modified prisma/schema.prisma Project model block to include:
+        changelogBranch String?
+
+        Ran `npx prisma db push` which:
+        - Connected to PostgreSQL database at aws-1-eu-central-1.pooler.supabase.com
+        - Applied schema change: ALTER TABLE "Project" ADD COLUMN "changelogBranch" TEXT;
+        - Completed successfully in 1.20s
+
+        Ran `npx prisma generate` which automatically generated new Prisma Client
+        types (v6.19.2) in 54ms with full support for the new field.
+      side_effects: >
+        - Prisma Client updated with types for changelogBranch: string | null
+        - Generated types include nullable field filters and update operations
+        - No breaking changes; field is optional so existing code unaffected
+        - Database migration implicit via db push (PostgreSQL column added)
+    code_changes:
+      - file: "prisma/schema.prisma"
+        change_type: "modified"
+        lines_added: 1
+        lines_removed: 0
+        diff_summary: "Added changelogBranch String? field after defaultBranch in Project model"
+    dependencies: []
+    related_entries: []

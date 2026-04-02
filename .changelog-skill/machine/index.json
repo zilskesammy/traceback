@@ -1,12 +1,22 @@
 {
   "project": "traceback",
-  "last_updated": "2026-03-31T15:30:02Z",
-  "total_entries": 14,
-  "total_files": 7,
+  "last_updated": "2026-04-02T00:00:00Z",
+  "total_entries": 15,
+  "total_files": 8,
   "categories": {
     "features": {
-      "count": 2,
+      "count": 3,
       "files": [
+        {
+          "id": "feat-20260402-001",
+          "path": "machine/features/add-changelog-branch-field.json",
+          "yaml_path": "human/features/add-changelog-branch-field.yaml",
+          "title": "Add changelogBranch field to Project model",
+          "status": "completed",
+          "priority": "high",
+          "entries_count": 1,
+          "last_entry": "2026-04-02T00:00:00Z"
+        },
         {
           "id": "feat-20260331-001",
           "path": "machine/features/changelog-sync-read-api.json",

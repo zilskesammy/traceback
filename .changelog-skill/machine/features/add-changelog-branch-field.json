@@ -1,0 +1,34 @@
+{
+  "id": "feat-20260402-001",
+  "title": "Add changelogBranch field to Project model",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-04-02T00:00:00Z",
+  "updated_at": "2026-04-02T00:00:00Z",
+  "ticket_id": null,
+  "tags": ["database", "schema", "changelog", "configuration"],
+  "summary": "Added optional changelogBranch String? field to the Prisma Project model, enabling changelog sync to read from a configurable branch instead of always using defaultBranch.",
+  "business_context": "Multi-branch changelog synchronization requires projects to optionally specify a separate branch for changelog tracking. This field allows fine-grained control over which branch contains authoritative changelog entries, improving flexibility for teams with complex branching strategies.",
+  "affected_components": [
+    "prisma/schema.prisma",
+    "@prisma/client (generated types)"
+  ],
+  "affected_users": "All projects using changelog sync feature",
+  "acceptance_criteria": [
+    "changelogBranch field added as optional String to Project model",
+    "Database schema synced successfully with npx prisma db push",
+    "Prisma client types generated correctly",
+    "No TypeScript compilation errors from schema change",
+    "Change committed to feat/changelog-sync branch"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": [
+    "entry-20260402-000000-be01"
+  ],
+  "_source_yaml": "human/features/add-changelog-branch-field.yaml"
+}
