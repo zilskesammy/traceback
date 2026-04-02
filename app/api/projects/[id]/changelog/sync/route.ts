@@ -17,18 +17,25 @@ export async function POST(
 
   const project = await db.project.findUnique({
     where: { id: projectId },
-    select: { repoOwner: true, repoName: true, defaultBranch: true },
+    select: {
+      repoOwner: true,
+      repoName: true,
+      defaultBranch: true,
+      changelogBranch: true,
+    },
   });
 
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
+  const ref = project.changelogBranch ?? project.defaultBranch;
+
   try {
     const features = await fetchChangelogFromGitHub(
       project.repoOwner,
       project.repoName,
-      project.defaultBranch
+      ref
     );
 
     let synced = 0;
@@ -37,7 +44,7 @@ export async function POST(
       synced++;
     }
 
-    return NextResponse.json({ ok: true, synced, total: features.length });
+    return NextResponse.json({ ok: true, synced, total: features.length, branch: ref });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[changelog-sync] Error:", message, err);
