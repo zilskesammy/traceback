@@ -26,11 +26,11 @@ export function ChangelogSection({
       .then((r) => r.json())
       .then((data: { branches?: string[] }) => {
         const list = data.branches ?? [];
-        setBranches(list);
-        // If currentBranch is not in the list, prepend it as manual entry
-        if (currentBranch && !list.includes(currentBranch)) {
-          setBranches([currentBranch, ...list]);
-        }
+        const merged =
+          currentBranch && !list.includes(currentBranch)
+            ? [currentBranch, ...list]
+            : list;
+        setBranches(merged);
         setLoading(false);
       })
       .catch(() => {
