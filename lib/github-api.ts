@@ -229,3 +229,22 @@ export async function listDirectory(
     throw err;
   }
 }
+
+// ─── BRANCHES ────────────────────────────────────────────────────────────────
+
+/**
+ * Lists all branches for a GitHub repository.
+ * Returns branch names sorted alphabetically.
+ * Uses per_page=100 (GitHub max) — sufficient for most repos.
+ */
+export async function listBranches(
+  owner: string,
+  repo: string
+): Promise<string[]> {
+  const { data } = await octokit.repos.listBranches({
+    owner,
+    repo,
+    per_page: 100,
+  });
+  return data.map((b) => b.name).sort();
+}
