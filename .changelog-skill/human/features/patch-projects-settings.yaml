@@ -1,0 +1,72 @@
+_machine_ref: "machine/features/patch-projects-settings.json"
+
+meta:
+  id: "feat-20260402-001"
+  title: "PATCH /api/projects/[id] endpoint for project settings"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-04-02T20:59:21Z"
+  updated_at: "2026-04-02T20:59:21Z"
+  ticket_id: ""
+  tags:
+    - api
+    - projects
+    - settings
+    - changelog
+
+  description:
+    summary: >
+      Created a PATCH endpoint at /api/projects/[id] to allow authenticated users
+      to update project settings, specifically the changelogBranch field.
+      This enables configuration of which Git branch the changelog should track.
+    business_context: >
+      Projects need to be able to specify which branch their changelog should sync from.
+      Previously, there was no way to update project settings via the API.
+      This endpoint closes that gap.
+    affected_components:
+      - "app/api/projects/[id]/route.ts"
+      - "lib/api/auth-middleware.ts"
+      - "prisma/schema.prisma (Project model)"
+    affected_users: "All authenticated project members with edit permissions"
+    acceptance_criteria:
+      - "PATCH request to /api/projects/[id] with changelogBranch in body"
+      - "Endpoint validates that changelogBranch is non-empty string"
+      - "Authentication via NextAuth session or Bearer token (API key)"
+      - "Successfully updates project.changelogBranch in database"
+      - "Returns updated project object with id and changelogBranch"
+
+entries:
+  - id: "entry-20260402-205921-be01"
+    timestamp: "2026-04-02T20:59:21Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Created PATCH /api/projects/[id] route for updating project settings"
+    description:
+      what: >
+        Implemented a PATCH route handler at app/api/projects/[id]/route.ts that
+        accepts a JSON body with a changelogBranch field and updates the project
+        settings in the database.
+      why: >
+        The project model now has a changelogBranch field to track which Git branch
+        the changelog should sync from. This endpoint provides the API surface for
+        users to configure this setting.
+      technical_details: >
+        The endpoint uses resolveAuth() to verify authentication (supports both NextAuth
+        sessions and Bearer token API keys). Input validation ensures changelogBranch
+        is a non-empty string. Uses Prisma db.project.update() with a scoped select
+        to return only id and changelogBranch in the response. Returns 401 Unauthorized
+        if auth fails, 400 Bad Request if validation fails, 200 OK on success.
+      side_effects: >
+        New dynamic route handler registered at /api/projects/[id]. No database
+        migrations needed (changelogBranch field already exists in schema).
+        Integrates with existing auth-middleware.ts — no new dependencies added.
+    code_changes:
+      - file: "app/api/projects/[id]/route.ts"
+        change_type: "created"
+        lines_added: 33
+        lines_removed: 0
+        diff_summary: "New PATCH handler with input validation and Prisma update logic"
+    dependencies: []
+    related_entries: []

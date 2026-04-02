@@ -1,0 +1,96 @@
+_machine_ref: "machine/features/settings-changelog-section.json"
+
+meta:
+  id: "feat-20260402-003"
+  title: "ChangelogSection settings component — branch selector"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-04-02T21:00:00Z"
+  updated_at: "2026-04-02T21:00:00Z"
+  ticket_id: ""
+  tags:
+    - settings
+    - changelog
+    - ui
+    - react
+
+  description:
+    summary: >
+      New "use client" React component ChangelogSection.tsx added to
+      components/settings/. Renders a branch dropdown loaded from
+      GET /api/projects/[id]/branches and a Save button that calls
+      PATCH /api/projects/[id] with { changelogBranch }. Handles
+      loading skeleton, saving spinner, success flash, and error states.
+    business_context: >
+      The PATCH /api/projects/[id] endpoint (Task 4) and the branches
+      API route (Task 3) are already implemented. This component is the
+      user-facing control that lets project owners configure which branch
+      the changelog syncs from — closing the full loop from DB field to
+      UI settings panel.
+    affected_components:
+      - "components/settings/ChangelogSection.tsx"
+    affected_users: "Project owners accessing the project settings page"
+    acceptance_criteria:
+      - "Dropdown loads branches from GET /api/projects/[id]/branches on mount"
+      - "If currentBranch is set but not returned by the API it is prepended to the list"
+      - "Save button calls PATCH /api/projects/[id] with { changelogBranch: selected }"
+      - "Loading state shows animated pulse skeleton while fetching branches"
+      - "Saving state disables the button and shows '...'"
+      - "Success state shows '✓ Gespeichert' for 2 seconds then resets"
+      - "Error messages from the API or network are displayed below the dropdown"
+      - "Visual style matches RepoSection.tsx: zinc-900 card, zinc-800 border, indigo-600 button"
+      - "TypeScript reports no errors in the new file"
+
+entries:
+  - id: "entry-20260402-210000-fe01"
+    timestamp: "2026-04-02T21:00:00Z"
+    agent_type: "FrontEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Created ChangelogSection.tsx — branch dropdown with save action for settings page"
+    description:
+      what: >
+        New client component at components/settings/ChangelogSection.tsx.
+        Accepts projectId, currentBranch (nullable), and defaultBranch as
+        props. On mount fetches branch list from the branches API and
+        initialises the select to currentBranch ?? defaultBranch. If
+        currentBranch is set but absent from the API response it is
+        prepended so it is always selectable. The Save button issues a
+        PATCH request and shows a 2-second success flash on completion.
+        Network and API errors are surfaced as inline red text beneath the
+        dropdown. A footer note shows the default branch and whether it is
+        currently active.
+      why: >
+        Project owners need a UI control to switch the changelog sync
+        branch without touching the database directly. The component
+        intentionally colocates all state locally (no global store) because
+        settings interactions are isolated and low-frequency. The 2-second
+        success flash gives immediate feedback without blocking the UI or
+        requiring a page reload.
+      technical_details: >
+        Pure React with useState/useEffect — no external state library.
+        Five distinct state variables: branches[], selected, loading,
+        saving, saved. Error is kept as string|null, never thrown, so the
+        component never unmounts on failure. The loading skeleton uses
+        Tailwind animate-pulse on a fixed-height div to avoid layout shift.
+        The select is styled with bg-zinc-800 / border-zinc-700 matching
+        the settings design system. focus:border-indigo-500 provides
+        keyboard-accessible focus ring. Button opacity-50 when disabled
+        covers both saving and the edge-case of an empty branch list.
+        TypeScript: no any types — API response typed as
+        { branches?: string[] }, error payload typed as
+        { error?: string }.
+      side_effects: >
+        No new npm dependencies added. Component must be imported and
+        rendered by the settings page (not done in this task — a
+        follow-up task wires it into the page). The component calls two
+        existing API routes that were completed in Tasks 3 and 4.
+    code_changes:
+      - file: "components/settings/ChangelogSection.tsx"
+        change_type: "added"
+        lines_added: 114
+        lines_removed: 0
+        diff_summary: "New client component: branch select + save, loading skeleton, error display"
+    dependencies: []
+    related_entries: []

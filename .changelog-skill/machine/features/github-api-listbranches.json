@@ -1,0 +1,28 @@
+{
+  "id": "feat-20260402-002",
+  "title": "Add listBranches() to GitHub API helper",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-04-02T00:00:00Z",
+  "updated_at": "2026-04-02T00:00:00Z",
+  "ticket_id": "Task 2",
+  "tags": ["github-api", "branches", "backend"],
+  "summary": "Implemented listBranches() function to fetch all branches from a GitHub repository, returning sorted branch names. Function uses Octokit's repos.listBranches API with per_page=100 pagination.",
+  "business_context": "Task 2 of the GitHub API helper enhancement. The function is needed by an upcoming API route (Task 3) that will list all branches in a project's repository.",
+  "affected_components": ["lib/github-api.ts"],
+  "affected_users": "Backend API route consumers; internal use for branch listing",
+  "acceptance_criteria": [
+    "listBranches() exports as async function accepting owner and repo params",
+    "Returns sorted array of branch name strings",
+    "Uses per_page=100 for pagination",
+    "TypeScript types are correct and compile without errors"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": ["entry-20260402-000000-be01"],
+  "_source_yaml": "human/features/github-api-listbranches.yaml"
+}

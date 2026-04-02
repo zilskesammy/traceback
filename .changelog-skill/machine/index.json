@@ -1,111 +1,48 @@
 {
   "project": "traceback",
-  "last_updated": "2026-04-02T00:00:00Z",
-  "total_entries": 15,
-  "total_files": 8,
+  "last_updated": "2026-04-02T00:01:00Z",
+  "total_entries": 2,
+  "total_files": 1,
   "categories": {
     "features": {
-      "count": 3,
+      "count": 1,
       "files": [
         {
           "id": "feat-20260402-001",
-          "path": "machine/features/add-changelog-branch-field.json",
-          "yaml_path": "human/features/add-changelog-branch-field.yaml",
-          "title": "Add changelogBranch field to Project model",
-          "status": "completed",
+          "path": "machine/features/changelog-sync.json",
+          "yaml_path": "human/features/changelog-sync.yaml",
+          "title": "Changelog Sync Feature",
+          "status": "in_progress",
           "priority": "high",
-          "entries_count": 1,
-          "last_entry": "2026-04-02T00:00:00Z"
-        },
-        {
-          "id": "feat-20260331-001",
-          "path": "machine/features/changelog-sync-read-api.json",
-          "yaml_path": "human/features/changelog-sync-read-api.yaml",
-          "title": "Changelog Sync + Read API Endpoints",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 3,
-          "last_entry": "2026-03-31T13:02:00Z"
-        },
-        {
-          "id": "feat-20260331-002",
-          "path": "machine/features/changelog-ui-components.json",
-          "yaml_path": "human/features/changelog-ui-components.yaml",
-          "title": "Changelog UI: ChangelogView, ProjectLayout, Project Page",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 3,
-          "last_entry": "2026-03-31T15:30:02Z"
+          "entries_count": 2,
+          "last_entry": "2026-04-02T00:01:00Z",
+          "tags": ["changelog", "sync", "settings"]
         }
       ]
     },
     "bugfixes": {
-      "count": 1,
-      "files": [
-        {
-          "id": "fix-20260331-001",
-          "path": "machine/bugfixes/deleted-model-references-commits-route.json",
-          "yaml_path": "human/bugfixes/deleted-model-references-commits-route.yaml",
-          "title": "Deleted model references removed from commits route and CommitsView",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 2,
-          "last_entry": "2026-03-31T15:10:00Z"
-        }
-      ]
+      "count": 0,
+      "files": []
     },
-    "testing": {"count": 0, "files": []},
+    "testing": {
+      "count": 0,
+      "files": []
+    },
     "refactoring": {
-      "count": 3,
-      "files": [
-        {
-          "id": "refac-20260331-003",
-          "path": "machine/refactoring/mcp-tools-feature-id-migration.json",
-          "yaml_path": "human/refactoring/mcp-tools-feature-id-migration.yaml",
-          "title": "MCP Tools: ticket_id/ticketId zu feature_id/featureId migriert, TaskComment-Tool entfernt",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 2,
-          "last_entry": "2026-03-31T15:00:00Z"
-        },
-        {
-          "id": "refac-20260331-001",
-          "path": "machine/refactoring/prisma-schema-changelog-models.json",
-          "yaml_path": "human/refactoring/prisma-schema-changelog-models.yaml",
-          "title": "Prisma Schema: Epic/Feature/Task durch ChangelogFeature/Entry/CodeChange ersetzen",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 2,
-          "last_entry": "2026-03-31T12:00:00Z"
-        },
-        {
-          "id": "refac-20260331-002",
-          "path": "machine/refactoring/webhook-github-changelog-sync.json",
-          "yaml_path": "human/refactoring/webhook-github-changelog-sync.yaml",
-          "title": "GitHub Webhook: Task-Logik entfernt, Changelog-Sync-Trigger hinzugefügt",
-          "status": "completed",
-          "priority": "high",
-          "entries_count": 1,
-          "last_entry": "2026-03-31T00:00:00Z"
-        }
-      ]
+      "count": 0,
+      "files": []
     },
-    "infrastructure": {"count": 0, "files": []},
-    "documentation": {"count": 0, "files": []},
+    "infrastructure": {
+      "count": 0,
+      "files": []
+    },
+    "documentation": {
+      "count": 0,
+      "files": []
+    },
     "configuration": {
-      "count": 1,
-      "files": [
-        {
-          "id": "conf-20260331-001",
-          "path": "machine/configuration/typescript-type-file-fixes.json",
-          "yaml_path": "human/configuration/typescript-type-file-fixes.yaml",
-          "title": "TypeScript type file fixes: UIChangelogEntry.createdAt, omitted relations comment, header comments",
-          "status": "completed",
-          "priority": "medium",
-          "entries_count": 1,
-          "last_entry": "2026-03-31T00:00:00Z"
-        }
-      ]
+      "count": 0,
+      "files": []
     }
   }
 }

@@ -1,0 +1,82 @@
+_machine_ref: "machine/features/branches-api-endpoint.json"
+
+meta:
+  id: "feat-20260402-001"
+  title: "GET /api/projects/[id]/branches API Route"
+  category: "feature"
+  status: "completed"
+  priority: "medium"
+  created_at: "2026-04-02T00:00:00Z"
+  updated_at: "2026-04-02T00:00:00Z"
+  ticket_id: ""
+  tags:
+    - api
+    - github-integration
+    - branches
+
+  description:
+    summary: >
+      Created GET /api/projects/[id]/branches route to enable fetching
+      available GitHub branches for a project. This endpoint integrates
+      with the recently added listBranches() function from lib/github-api.ts.
+    
+    business_context: >
+      The frontend needs to display available GitHub branches in the changelog UI,
+      allowing users to select or filter by branch when viewing project history.
+      This endpoint provides the backend integration point.
+    
+    affected_components:
+      - "app/api/projects/[id]/branches/route.ts"
+      - "lib/github-api.ts (existing listBranches function)"
+      - "lib/api/auth-middleware.ts (existing resolveAuth)"
+    
+    affected_users: "All users viewing changelog with branch context awareness"
+    
+    acceptance_criteria:
+      - "Endpoint returns 401 Unauthorized when user lacks access"
+      - "Endpoint returns 404 when project not found"
+      - "Endpoint returns 200 with branches array when successful"
+      - "Response format: { branches: [...] }"
+
+entries:
+  - id: "entry-20260402-000000-be01"
+    timestamp: "2026-04-02T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Implemented branches API route with auth validation"
+    description:
+      what: >
+        Created GET /api/projects/[id]/branches/route.ts with:
+        - Auth validation via resolveAuth middleware
+        - Project lookup to retrieve repoOwner and repoName
+        - Call to listBranches() to fetch GitHub branches
+        - Proper error responses (401 Unauthorized, 404 Not Found)
+      
+      why: >
+        The branches endpoint is part of Task 3 in the changelog feature implementation.
+        It provides the backend integration needed for the frontend to display and
+        filter project history by GitHub branch.
+      
+      technical_details: >
+        Route uses Next.js App Router with dynamic [id] parameter.
+        Auth check happens first via resolveAuth middleware.
+        Project lookup is selective (only repoOwner, repoName fields).
+        Returns branch data directly from GitHub API via listBranches().
+        HTTP status codes follow REST conventions: 401, 404, 200.
+      
+      side_effects: >
+        New subdirectory created: app/api/projects/[id]/branches/
+        No breaking changes to existing APIs.
+        No new dependencies added.
+        No database migrations required.
+    
+    code_changes:
+      - file: "app/api/projects/[id]/branches/route.ts"
+        change_type: "create"
+        lines_added: 25
+        lines_removed: 0
+        diff_summary: "New GET endpoint for GitHub branches listing"
+    
+    dependencies: []
+    related_entries: []

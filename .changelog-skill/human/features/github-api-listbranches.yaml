@@ -1,0 +1,68 @@
+_machine_ref: "machine/features/github-api-listbranches.json"
+
+meta:
+  id: "feat-20260402-002"
+  title: "Add listBranches() to GitHub API helper"
+  category: "feature"
+  status: "completed"
+  priority: "high"
+  created_at: "2026-04-02T00:00:00Z"
+  updated_at: "2026-04-02T00:00:00Z"
+  ticket_id: "Task 2"
+  tags:
+    - github-api
+    - branches
+    - backend
+
+  description:
+    summary: >
+      Implemented listBranches() function to fetch all branches from a GitHub
+      repository, returning sorted branch names. Function uses Octokit's
+      repos.listBranches API with per_page=100 pagination.
+    business_context: >
+      Task 2 of the GitHub API helper enhancement. The function is needed by
+      an upcoming API route (Task 3) that will list all branches in a
+      project's repository.
+    affected_components:
+      - "lib/github-api.ts"
+    affected_users: "Backend API route consumers; internal use for branch listing"
+    acceptance_criteria:
+      - "listBranches() exports as async function accepting owner and repo params"
+      - "Returns sorted array of branch name strings"
+      - "Uses per_page=100 for pagination"
+      - "TypeScript types are correct and compile without errors"
+
+entries:
+  - id: "entry-20260402-000000-be01"
+    timestamp: "2026-04-02T00:00:00Z"
+    agent_type: "BackEnd"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Implemented listBranches() function in github-api.ts"
+    description:
+      what: >
+        Added new async function listBranches(owner: string, repo: string)
+        to lib/github-api.ts that fetches all branches from a GitHub
+        repository and returns them as a sorted array of branch names.
+      why: >
+        Backend API route in Task 3 needs to list all branches in a
+        repository. Centralizing this in github-api.ts maintains consistency
+        with existing helper functions (getFileContent, createBranch, etc.).
+      technical_details: >
+        Function uses the singleton octokit instance already initialized at
+        the top of github-api.ts. Calls octokit.repos.listBranches with
+        owner, repo, and per_page=100 (GitHub API maximum). Maps the response
+        data to extract branch names and sorts them alphabetically using
+        JavaScript Array.sort(). Return type is Promise<string[]>.
+      side_effects: >
+        No breaking changes. Pure addition of a new export. Follows existing
+        code patterns in the file: async/await error handling, TypeScript
+        type annotations, JSDoc comments describing function purpose.
+    code_changes:
+      - file: "lib/github-api.ts"
+        change_type: "addition"
+        lines_added: 19
+        lines_removed: 0
+        diff_summary: "Added listBranches(owner, repo) async function that returns Promise<string[]> of sorted branch names"
+    dependencies: []
+    related_entries: []

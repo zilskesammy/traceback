@@ -1,0 +1,37 @@
+{
+  "id": "feat-20260402-003",
+  "title": "ChangelogSection settings component — branch selector",
+  "category": "feature",
+  "status": "completed",
+  "priority": "high",
+  "created_at": "2026-04-02T21:00:00Z",
+  "updated_at": "2026-04-02T21:00:00Z",
+  "ticket_id": "",
+  "tags": ["settings", "changelog", "ui", "react"],
+  "summary": "New client component ChangelogSection.tsx added to components/settings/. Renders a branch dropdown loaded from GET /api/projects/[id]/branches and a Save button that calls PATCH /api/projects/[id] with { changelogBranch }. Handles loading skeleton, saving spinner, success flash, and error states.",
+  "business_context": "The PATCH /api/projects/[id] endpoint (Task 4) and the branches API route (Task 3) are already implemented. This component is the user-facing control that lets project owners configure which branch the changelog syncs from — closing the full loop from DB field to UI settings panel.",
+  "affected_components": [
+    "components/settings/ChangelogSection.tsx"
+  ],
+  "affected_users": "Project owners accessing the project settings page",
+  "acceptance_criteria": [
+    "Dropdown loads branches from GET /api/projects/[id]/branches on mount",
+    "If currentBranch is set but not returned by the API it is prepended to the list",
+    "Save button calls PATCH /api/projects/[id] with { changelogBranch: selected }",
+    "Loading state shows animated pulse skeleton while fetching branches",
+    "Saving state disables the button and shows '...'",
+    "Success state shows '✓ Gespeichert' for 2 seconds then resets",
+    "Error messages from the API or network are displayed below the dropdown",
+    "Visual style matches RepoSection.tsx: zinc-900 card, zinc-800 border, indigo-600 button",
+    "TypeScript reports no errors in the new file"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": [
+    "entry-20260402-210000-fe01"
+  ],
+  "_source_yaml": "human/features/settings-changelog-section.yaml"
+}

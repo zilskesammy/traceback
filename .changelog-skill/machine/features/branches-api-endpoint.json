@@ -1,0 +1,38 @@
+{
+  "id": "feat-20260402-001",
+  "title": "GET /api/projects/[id]/branches API Route",
+  "category": "feature",
+  "status": "completed",
+  "priority": "medium",
+  "created_at": "2026-04-02T00:00:00Z",
+  "updated_at": "2026-04-02T00:00:00Z",
+  "ticket_id": "",
+  "tags": [
+    "api",
+    "github-integration",
+    "branches"
+  ],
+  "summary": "Created GET /api/projects/[id]/branches route to enable fetching available GitHub branches for a project.",
+  "business_context": "The frontend needs to display available GitHub branches in the changelog UI. This endpoint provides the backend integration point.",
+  "affected_components": [
+    "app/api/projects/[id]/branches/route.ts",
+    "lib/github-api.ts",
+    "lib/api/auth-middleware.ts"
+  ],
+  "affected_users": "All users viewing changelog with branch context awareness",
+  "acceptance_criteria": [
+    "Endpoint returns 401 Unauthorized when user lacks access",
+    "Endpoint returns 404 when project not found",
+    "Endpoint returns 200 with branches array when successful",
+    "Response format: { branches: [...] }"
+  ],
+  "root_cause": null,
+  "impact": null,
+  "resolution": null,
+  "regression_risk": null,
+  "entries_count": 1,
+  "entries": [
+    "entry-20260402-000000-be01"
+  ],
+  "_source_yaml": "human/features/branches-api-endpoint.yaml"
+}

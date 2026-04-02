@@ -1,0 +1,106 @@
+_machine_ref: "machine/features/changelog-sync.json"
+
+meta:
+  id: "feat-20260402-001"
+  title: "Changelog Sync Feature"
+  category: "feature"
+  status: "in_progress"
+  priority: "high"
+  created_at: "2026-04-02T00:00:00Z"
+  updated_at: "2026-04-02T00:00:00Z"
+  ticket_id: ""
+  tags:
+    - changelog
+    - sync
+    - settings
+
+  description:
+    summary: >
+      Implement changelog synchronization feature that allows users to select
+      a specific git branch as the source for changelog generation.
+    business_context: >
+      Users need to configure which git branch should be monitored for
+      changelog synchronization. This allows flexibility in deployment
+      workflows where changelog generation may come from a different
+      branch than the main production code.
+    affected_components:
+      - "components/settings/ChangelogSection.tsx"
+      - "app/(app)/projects/[id]/settings/page.tsx"
+      - "lib/db"
+      - "api/projects/[id]/branches"
+      - "api/projects/[id]"
+    affected_users: "Project administrators configuring changelog sources"
+    acceptance_criteria:
+      - "Settings page displays ChangelogSection component"
+      - "Users can select a changelog branch from available repo branches"
+      - "Selected branch is persisted to the project configuration"
+      - "Default branch fallback works when no changelog branch is set"
+
+entries:
+  - id: "entry-20260402-000000-fs001"
+    timestamp: "2026-04-02T00:00:00Z"
+    agent_type: "FullStack"
+    agent_name: "Claude"
+    action: "created"
+    summary: "ChangelogSection Client Component"
+    description:
+      what: >
+        Created ChangelogSection.tsx — a Client Component that allows users
+        to select and configure which git branch to use for changelog generation.
+      why: >
+        The settings page needed an interactive component for branch selection.
+        Implemented as a Client Component to handle dynamic branch fetching,
+        user selection, and API calls independently.
+      technical_details: >
+        Component fetches available branches from /api/projects/[id]/branches,
+        displays them in a select dropdown, and saves selection via PATCH to
+        /api/projects/[id]. Handles loading, error, and saved states with
+        proper UX feedback. Includes fallback for previously selected branches
+        that may have been deleted.
+      side_effects: >
+        New Client Component dependency on useState, useEffect. New API calls
+        to fetch branches and update project. Loading skeleton provided during
+        branch fetch. Error messages shown to user on network or validation issues.
+    code_changes:
+      - file: "components/settings/ChangelogSection.tsx"
+        change_type: "added"
+        lines_added: 115
+        lines_removed: 0
+        diff_summary: "New Client Component for changelog branch selection with branch fetching and persistence"
+    dependencies:
+      - "react"
+    related_entries: []
+
+  - id: "entry-20260402-000100-fs002"
+    timestamp: "2026-04-02T00:01:00Z"
+    agent_type: "FullStack"
+    agent_name: "Claude"
+    action: "created"
+    summary: "Update Settings Page to Include ChangelogSection"
+    description:
+      what: >
+        Updated ProjectSettingsPage Server Component to fetch and pass
+        changelogBranch from project, then render ChangelogSection in
+        the settings layout between RepoSection and ApiKeysSection.
+      why: >
+        The settings page is the primary interface for project configuration.
+        ChangelogSection needs to be integrated there with proper data flow
+        from Server Component to Client Component.
+      technical_details: >
+        Added changelogBranch field to db.project.findUnique select.
+        Server Component passes projectId, currentBranch (changelogBranch),
+        and defaultBranch to ChangelogSection. This separates data fetching
+        (server) from interactivity (client) per Next.js App Router patterns.
+      side_effects: >
+        ProjectSettingsPage now fetches one additional field from database.
+        Slight increase in query size but no performance impact. ChangelogSection
+        now visible and functional in the settings UI.
+    code_changes:
+      - file: "app/(app)/projects/[id]/settings/page.tsx"
+        change_type: "modify"
+        lines_added: 3
+        lines_removed: 2
+        diff_summary: "Added ChangelogSection import, added changelogBranch to query, rendered component with props"
+    dependencies: []
+    related_entries:
+      - "entry-20260402-000000-fs001"
