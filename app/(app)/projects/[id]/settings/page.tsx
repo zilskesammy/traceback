@@ -1,11 +1,11 @@
 // app/(app)/projects/[id]/settings/page.tsx — Server Component
-// Lädt Projekt-Daten, API-Keys und Commit-Stats, rendert Settings-Seite.
 
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { ApiKeysSection } from "@/components/settings/ApiKeysSection";
 import { RepoSection } from "@/components/settings/RepoSection";
+import { ChangelogSection } from "@/components/settings/ChangelogSection";
 
 export default async function ProjectSettingsPage({
   params,
@@ -24,6 +24,7 @@ export default async function ProjectSettingsPage({
         repoName: true,
         repoUrl: true,
         defaultBranch: true,
+        changelogBranch: true,
         apiKeys: {
           select: {
             id: true,
@@ -53,7 +54,6 @@ export default async function ProjectSettingsPage({
     createdAt: k.createdAt.toISOString(),
   }));
 
-  // Webhook-URL aus aktuellem Host ableiten
   const headersList = await headers();
   const host = headersList.get("host") ?? "localhost:3000";
   const protocol = host.startsWith("localhost") ? "http" : "https";
@@ -62,7 +62,6 @@ export default async function ProjectSettingsPage({
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       <div className="max-w-3xl mx-auto px-6 py-12">
-        {/* Header */}
         <div className="mb-10">
           <h1 className="text-xl font-semibold text-zinc-100">
             {project.name}
@@ -70,7 +69,6 @@ export default async function ProjectSettingsPage({
           <p className="mt-1 text-sm text-zinc-500">Projekteinstellungen</p>
         </div>
 
-        {/* GitHub Repository */}
         <RepoSection
           repoOwner={project.repoOwner}
           repoName={project.repoName}
@@ -81,7 +79,12 @@ export default async function ProjectSettingsPage({
           webhookUrl={webhookUrl}
         />
 
-        {/* API Keys */}
+        <ChangelogSection
+          projectId={project.id}
+          currentBranch={project.changelogBranch}
+          defaultBranch={project.defaultBranch}
+        />
+
         <ApiKeysSection projectId={projectId} initialKeys={initialKeys} />
       </div>
     </div>
