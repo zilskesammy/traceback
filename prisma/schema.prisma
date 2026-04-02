@@ -81,6 +81,7 @@ model Project {
   githubInstallationId String?
   webhookSecret        String
   defaultBranch        String  @default("main")
+  changelogBranch      String?
 
   members           ProjectMember[]
   invitations       ProjectInvitation[]
