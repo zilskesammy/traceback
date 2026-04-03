@@ -8,6 +8,7 @@ import type { NextAuthConfig } from "next-auth";
 
 export const authConfig: NextAuthConfig = {
   adapter: PrismaAdapter(db),
+  trustHost: true,
 
   providers: [
     GitHub({

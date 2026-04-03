@@ -14,7 +14,11 @@ export default async function LoginPage({
   const params = await searchParams;
 
   if (session?.user) {
-    redirect(params.callbackUrl ?? "/dashboard");
+    const dest =
+      params.callbackUrl && !params.callbackUrl.includes("/login")
+        ? params.callbackUrl
+        : "/dashboard";
+    redirect(dest);
   }
 
   const errorMessages: Record<string, string> = {
