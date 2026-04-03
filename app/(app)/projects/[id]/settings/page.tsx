@@ -2,7 +2,9 @@
 
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
+import { ArrowLeft } from "lucide-react";
 import { ApiKeysSection } from "@/components/settings/ApiKeysSection";
 import { RepoSection } from "@/components/settings/RepoSection";
 import { ChangelogSection } from "@/components/settings/ChangelogSection";
@@ -60,13 +62,20 @@ export default async function ProjectSettingsPage({
   const webhookUrl = `${protocol}://${host}/api/webhook/github`;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-100">
       <div className="max-w-3xl mx-auto px-6 py-12">
         <div className="mb-10">
-          <h1 className="text-xl font-semibold text-zinc-100">
+          <Link
+            href={`/projects/${projectId}`}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Zurück
+          </Link>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-slate-100">
             {project.name}
           </h1>
-          <p className="mt-1 text-sm text-zinc-500">Projekteinstellungen</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">Projekteinstellungen</p>
         </div>
 
         <RepoSection

@@ -64,24 +64,24 @@ export function ChangelogSection({
 
   return (
     <section className="mb-10">
-      <h2 className="text-base font-semibold text-zinc-100 mb-1">Changelog</h2>
-      <p className="text-sm text-zinc-500 mb-5">
+      <h2 className="text-base font-semibold text-gray-700 dark:text-slate-300 mb-1">Changelog</h2>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
         Branch aus dem der Changelog synchronisiert wird.
       </p>
 
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-5 py-4">
-        <label className="text-xs font-medium text-zinc-400 block mb-2">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-5 py-4">
+        <label className="text-xs font-medium text-gray-500 dark:text-slate-400 block mb-2">
           Changelog Branch
         </label>
 
         {loading ? (
-          <div className="h-9 bg-zinc-800 rounded-lg animate-pulse" />
+          <div className="h-9 bg-gray-100 dark:bg-slate-800 rounded-lg animate-pulse" />
         ) : (
           <div className="flex gap-2">
             <select
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-indigo-500"
+              className="flex-1 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-slate-200 focus:outline-none focus:border-indigo-500"
             >
               {branches.map((b) => (
                 <option key={b} value={b}>
@@ -92,7 +92,7 @@ export function ChangelogSection({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-xs font-medium text-white transition-colors"
+              className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-xs font-medium text-white transition-colors"
             >
               {saved ? "✓ Gespeichert" : saving ? "..." : "Speichern"}
             </button>
@@ -100,12 +100,12 @@ export function ChangelogSection({
         )}
 
         {error && (
-          <p className="text-xs text-red-400 mt-2">{error}</p>
+          <p className="text-xs text-red-500 dark:text-red-400 mt-2">{error}</p>
         )}
 
-        <p className="text-[11px] text-zinc-600 mt-2">
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-2">
           Standard:{" "}
-          <code className="text-zinc-500">{defaultBranch}</code>
+          <code className="text-gray-500 dark:text-slate-400">{defaultBranch}</code>
           {!currentBranch && " (aktuell aktiv)"}
         </p>
       </div>
