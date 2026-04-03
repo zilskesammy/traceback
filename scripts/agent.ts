@@ -234,102 +234,71 @@ When you are finished, call task_complete with a summary of what you did.
 If the task involved creating a feature or fixing a bug, also provide createEntry.`,
     });
 
-    let textBuffer = "";
-    let currentToolName = "";
-    let currentToolInput = "";
-    let currentToolId = "";
-
+    // Stream text chunks to the browser as they arrive
     for await (const event of stream) {
-      if (event.type === "content_block_start") {
-        if (event.content_block.type === "tool_use") {
-          currentToolName = event.content_block.name;
-          currentToolId = event.content_block.id;
-          currentToolInput = "";
-        }
-      }
-
-      if (event.type === "content_block_delta") {
-        if (event.delta.type === "text_delta") {
-          textBuffer += event.delta.text;
-          // Push text in chunks of ~200 chars
-          if (textBuffer.length > 200) {
-            await pushChunk(taskId, textBuffer, "text");
-            textBuffer = "";
-          }
-        }
-        if (event.delta.type === "input_json_delta") {
-          currentToolInput += event.delta.partial_json;
-        }
-      }
-
-      if (event.type === "content_block_stop" && currentToolName) {
-        // Flush remaining text
-        if (textBuffer) {
-          await pushChunk(taskId, textBuffer, "text");
-          textBuffer = "";
-        }
-
-        // Parse and execute tool
-        let toolInput: Record<string, unknown> = {};
-        try {
-          toolInput = JSON.parse(currentToolInput);
-        } catch {
-          toolInput = {};
-        }
-
-        if (currentToolName === "task_complete") {
-          const inp = toolInput as {
-            summary: string;
-            createEntry?: { title: string; type: string; summary: string };
-          };
-
-          if (inp.createEntry) {
-            featureId =
-              (await createFeature(
-                inp.createEntry.title,
-                inp.createEntry.type,
-                inp.createEntry.summary
-              )) ?? undefined;
-          }
-
-          await pushChunk(taskId, `✓ ${inp.summary}`, "done", true, false, featureId);
-          done = true;
-        } else {
-          await pushChunk(taskId, `▶ ${currentToolName}(${JSON.stringify(toolInput).slice(0, 100)})`, "tool_use");
-          const { result } = executeTool(currentToolName, toolInput);
-          await pushChunk(taskId, result.slice(0, 500), "tool_result");
-
-          // Add tool result to message history
-          const lastMessage = messages[messages.length - 1];
-          if (lastMessage.role === "assistant") {
-            messages.push({
-              role: "user",
-              content: [
-                {
-                  type: "tool_result",
-                  tool_use_id: currentToolId,
-                  content: result,
-                },
-              ],
-            });
-          }
-        }
-
-        currentToolName = "";
-        currentToolInput = "";
-        currentToolId = "";
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        await pushChunk(taskId, event.delta.text, "text");
       }
     }
 
-    // Flush remaining text
-    if (textBuffer) {
-      await pushChunk(taskId, textBuffer, "text");
+    const response = await stream.finalMessage();
+
+    // Add full assistant turn to history BEFORE processing tool calls
+    messages.push({ role: "assistant", content: response.content });
+
+    // Now process tool use blocks
+    const toolUseBlocks = response.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+    );
+
+    if (toolUseBlocks.length === 0) {
+      // No tool calls — model is done (shouldn't happen without task_complete, but handle gracefully)
+      done = true;
+      break;
     }
 
-    // Add assistant response to history if not done
-    if (!done) {
-      const response = await stream.finalMessage();
-      messages.push({ role: "assistant", content: response.content });
+    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+    for (const toolBlock of toolUseBlocks) {
+      const toolInput = toolBlock.input as Record<string, unknown>;
+
+      if (toolBlock.name === "task_complete") {
+        const inp = toolInput as {
+          summary: string;
+          createEntry?: { title: string; type: string; summary: string };
+        };
+
+        if (inp.createEntry) {
+          featureId =
+            (await createFeature(
+              inp.createEntry.title,
+              inp.createEntry.type,
+              inp.createEntry.summary
+            )) ?? undefined;
+        }
+
+        await pushChunk(taskId, `✓ ${inp.summary}`, "done", true, false, featureId);
+        done = true;
+        break;
+      }
+
+      await pushChunk(
+        taskId,
+        `▶ ${toolBlock.name}(${JSON.stringify(toolInput).slice(0, 100)})`,
+        "tool_use"
+      );
+      const { result } = executeTool(toolBlock.name, toolInput);
+      await pushChunk(taskId, result.slice(0, 500), "tool_result");
+
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: toolBlock.id,
+        content: result,
+      });
+    }
+
+    if (!done && toolResults.length > 0) {
+      messages.push({ role: "user", content: toolResults });
     }
   }
 

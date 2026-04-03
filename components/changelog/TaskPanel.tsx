@@ -35,6 +35,12 @@ export function TaskPanel({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, []);
+
   function stopPolling() {
     if (pollRef.current) {
       clearInterval(pollRef.current);
@@ -58,6 +64,14 @@ export function TaskPanel({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, prompt }),
     });
+    if (!res.ok) {
+      setMessages((prev) => [
+        ...prev,
+        { role: "agent", chunks: [], status: "error" },
+      ]);
+      setSending(false);
+      return;
+    }
     const task = await res.json();
     const taskId: string = task.id;
 

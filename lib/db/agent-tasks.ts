@@ -43,11 +43,21 @@ export async function getChunksAfter(
   taskId: string,
   afterId: string | null
 ): Promise<AgentTaskChunk[]> {
+  if (afterId) {
+    // Find the createdAt of the cursor chunk, then fetch everything after it
+    const cursor = await db.agentTaskChunk.findUnique({
+      where: { id: afterId },
+      select: { createdAt: true },
+    });
+    if (cursor) {
+      return db.agentTaskChunk.findMany({
+        where: { taskId, createdAt: { gt: cursor.createdAt } },
+        orderBy: { createdAt: "asc" },
+      });
+    }
+  }
   return db.agentTaskChunk.findMany({
-    where: {
-      taskId,
-      ...(afterId ? { id: { gt: afterId } } : {}),
-    },
+    where: { taskId },
     orderBy: { createdAt: "asc" },
   });
 }

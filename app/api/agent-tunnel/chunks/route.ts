@@ -37,8 +37,11 @@ export async function POST(req: NextRequest) {
   if (content) {
     await pushChunk(taskId, content, chunkType);
   }
-  if (done) await completeTask(taskId, featureId);
-  if (error) await failTask(taskId);
+  if (done) {
+    await completeTask(taskId, featureId);
+  } else if (error) {
+    await failTask(taskId);
+  }
 
   return NextResponse.json({ ok: true });
 }
