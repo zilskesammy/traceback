@@ -20,7 +20,7 @@ interface Message {
 
 export function TaskPanel({
   projectId,
-  agentOnline,
+  agentOnline: initialAgentOnline,
 }: {
   projectId: string;
   agentOnline: boolean;
@@ -28,9 +28,28 @@ export function TaskPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [agentOnline, setAgentOnline] = useState(initialAgentOnline);
   const sendingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll agent status every 5s
+  useEffect(() => {
+    async function checkStatus() {
+      try {
+        const res = await fetch(`/api/agent-tunnel/status?projectId=${projectId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAgentOnline(data.online);
+        }
+      } catch {
+        setAgentOnline(false);
+      }
+    }
+    checkStatus();
+    const id = setInterval(checkStatus, 5_000);
+    return () => clearInterval(id);
+  }, [projectId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
