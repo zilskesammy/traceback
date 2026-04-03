@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { ChangelogView } from "./ChangelogView";
 import { CommitsView } from "@/components/planning/CommitsView";
+import { TaskPanel } from "./TaskPanel";
 import type { UIProject, UIChangelogFeature } from "@/types/changelog";
 
 type View = "changelog" | "commits";
@@ -21,14 +22,17 @@ export function ProjectLayout({
   initialFeatures,
   userName,
   userEmail,
+  agentLastSeenAt,
 }: {
   project: UIProject;
   initialFeatures: UIChangelogFeature[];
   userName: string | null;
   userEmail: string | null;
+  agentLastSeenAt: string | null;
 }) {
   const [view, setView] = useState<View>("changelog");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const agentOnline = agentLastSeenAt !== null && Date.now() - new Date(agentLastSeenAt).getTime() < 10_000;
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-50 dark:bg-slate-950">
@@ -44,6 +48,7 @@ export function ProjectLayout({
           onViewChange={setView}
           userName={userName}
           userEmail={userEmail}
+          agentOnline={agentOnline}
         />
       </aside>
 
@@ -70,15 +75,20 @@ export function ProjectLayout({
           </div>
         </div>
 
-        {/* Views — both mounted, toggled via hidden */}
-        <div className={`flex-1 overflow-hidden ${view === "changelog" ? "" : "hidden"}`}>
-          <ChangelogView projectId={project.id} initialFeatures={initialFeatures} />
-        </div>
-        <div className={`flex-1 overflow-hidden ${view === "commits" ? "" : "hidden"}`}>
-          <CommitsView
-            projectId={project.id}
-            repoUrl={`https://github.com/${project.repoOwner}/${project.repoName}`}
-          />
+        {/* Content + Task Panel */}
+        <div className="flex-1 flex overflow-hidden min-w-0">
+          <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div className={`flex-1 overflow-hidden ${view === "changelog" ? "" : "hidden"}`}>
+              <ChangelogView projectId={project.id} initialFeatures={initialFeatures} />
+            </div>
+            <div className={`flex-1 overflow-hidden ${view === "commits" ? "" : "hidden"}`}>
+              <CommitsView
+                projectId={project.id}
+                repoUrl={`https://github.com/${project.repoOwner}/${project.repoName}`}
+              />
+            </div>
+          </div>
+          <TaskPanel projectId={project.id} agentOnline={agentOnline} />
         </div>
       </main>
     </div>

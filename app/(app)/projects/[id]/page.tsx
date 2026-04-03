@@ -22,6 +22,7 @@ export default async function ProjectPage({
       repoOwner: true,
       repoName: true,
       defaultBranch: true,
+      agentLastSeenAt: true,
     },
   });
 
@@ -107,6 +108,7 @@ export default async function ProjectPage({
       initialFeatures={features}
       userName={session?.user?.name ?? null}
       userEmail={session?.user?.email ?? null}
+      agentLastSeenAt={project.agentLastSeenAt?.toISOString() ?? null}
     />
   );
 }

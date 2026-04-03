@@ -20,6 +20,7 @@ interface ProjectSidebarProps {
   onViewChange: (v: View) => void;
   userName: string | null;
   userEmail: string | null;
+  agentOnline: boolean;
 }
 
 export function ProjectSidebar({
@@ -28,6 +29,7 @@ export function ProjectSidebar({
   onViewChange,
   userName,
   userEmail,
+  agentOnline,
 }: ProjectSidebarProps) {
   const initials = (userName ?? userEmail ?? "?")
     .split(" ")
@@ -107,6 +109,18 @@ export function ProjectSidebar({
           API Keys
         </Link>
       </nav>
+
+      {/* Agent status */}
+      <div className="px-3 pb-1 flex-shrink-0">
+        <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
+          agentOnline
+            ? "bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400"
+            : "bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500"
+        }`}>
+          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${agentOnline ? "bg-emerald-500" : "bg-gray-300 dark:bg-slate-600"}`} />
+          {agentOnline ? "Agent verbunden" : "Kein Agent"}
+        </div>
+      </div>
 
       {/* User row */}
       <div className="px-3 py-2.5 border-t border-gray-200 dark:border-slate-800 flex-shrink-0">
