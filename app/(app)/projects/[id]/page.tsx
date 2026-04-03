@@ -3,6 +3,7 @@
 
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
 import { ProjectLayout } from "@/components/changelog/ProjectLayout";
 import type { UIProject, UIChangelogFeature } from "@/types/changelog";
 
@@ -98,5 +99,14 @@ export default async function ProjectPage({
     _entryCount: f._count.entries,
   }));
 
-  return <ProjectLayout project={uiProject} initialFeatures={features} />;
+  const session = await auth();
+
+  return (
+    <ProjectLayout
+      project={uiProject}
+      initialFeatures={features}
+      userName={session?.user?.name ?? null}
+      userEmail={session?.user?.email ?? null}
+    />
+  );
 }
