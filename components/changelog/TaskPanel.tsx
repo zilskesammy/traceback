@@ -28,6 +28,7 @@ export function TaskPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const sendingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -50,7 +51,8 @@ export function TaskPanel({
 
   async function sendTask() {
     const prompt = input.trim();
-    if (!prompt || sending) return;
+    if (!prompt || sendingRef.current) return;
+    sendingRef.current = true;
 
     setInput("");
     setSending(true);
@@ -69,6 +71,7 @@ export function TaskPanel({
         ...prev,
         { role: "agent", chunks: [], status: "error" },
       ]);
+      sendingRef.current = false;
       setSending(false);
       return;
     }
@@ -81,6 +84,7 @@ export function TaskPanel({
       { role: "agent", taskId, chunks: [], status: "running" },
     ]);
 
+    sendingRef.current = false;
     setSending(false);
 
     // Start polling for chunks
