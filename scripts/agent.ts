@@ -3,6 +3,11 @@
 // Usage: TRACEBACK_API_KEY=tb_xxx TRACEBACK_PROJECT_ID=xxx npm run agent
 
 import { spawn } from "child_process";
+import { config } from "dotenv";
+import { resolve } from "path";
+
+// Load .env.local from the repo root
+config({ path: resolve(process.cwd(), ".env.local") });
 
 const API_KEY = process.env.TRACEBACK_API_KEY;
 const PROJECT_ID = process.env.TRACEBACK_PROJECT_ID;
