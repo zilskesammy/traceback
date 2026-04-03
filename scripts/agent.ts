@@ -1,26 +1,18 @@
 #!/usr/bin/env npx tsx
-// scripts/agent.ts — Local Traceback agent
-// Usage: TRACEBACK_API_KEY=tb_xxx TRACEBACK_PROJECT_ID=xxx ANTHROPIC_API_KEY=sk-ant-xxx npx tsx scripts/agent.ts
+// scripts/agent.ts — Local Traceback agent (uses Claude Code CLI, no API key needed)
+// Usage: TRACEBACK_API_KEY=tb_xxx TRACEBACK_PROJECT_ID=xxx npm run agent
 
-import Anthropic from "@anthropic-ai/sdk";
-import fs from "fs";
-import path from "path";
-import { execSync } from "child_process";
+import { spawn } from "child_process";
 
 const API_KEY = process.env.TRACEBACK_API_KEY;
 const PROJECT_ID = process.env.TRACEBACK_PROJECT_ID;
-const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const BASE_URL = process.env.TRACEBACK_URL ?? "https://traceback-hazel.vercel.app";
 const REPO_DIR = process.env.REPO_DIR ?? process.cwd();
 
-if (!API_KEY || !PROJECT_ID || !ANTHROPIC_KEY) {
-  console.error(
-    "Missing env vars: TRACEBACK_API_KEY, TRACEBACK_PROJECT_ID, ANTHROPIC_API_KEY"
-  );
+if (!API_KEY || !PROJECT_ID) {
+  console.error("Missing env vars: TRACEBACK_API_KEY, TRACEBACK_PROJECT_ID");
   process.exit(1);
 }
-
-const anthropic = new Anthropic({ apiKey: ANTHROPIC_KEY });
 
 const headers = {
   "Content-Type": "application/json",
@@ -30,11 +22,15 @@ const headers = {
 // ─── Traceback API helpers ────────────────────────────────────────────────────
 
 async function heartbeat() {
-  await fetch(`${BASE_URL}/api/agent-tunnel/heartbeat`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ projectId: PROJECT_ID }),
-  });
+  try {
+    await fetch(`${BASE_URL}/api/agent-tunnel/heartbeat`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ projectId: PROJECT_ID }),
+    });
+  } catch {
+    // ignore network errors on heartbeat
+  }
 }
 
 async function pollTask() {
@@ -69,246 +65,121 @@ async function pushChunk(
   });
 }
 
-async function createFeature(
-  title: string,
-  type: string,
-  summary: string
-): Promise<string | null> {
-  const res = await fetch(
-    `${BASE_URL}/api/projects/${PROJECT_ID}/changelog`,
-    {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        id: `task-${Date.now()}`,
-        type: type.toUpperCase(),
-        status: "COMPLETED",
-        priority: "MEDIUM",
-        title,
-        summary,
-        source: "UI",
-        tags: ["agent"],
-        affectedComponents: [],
-        acceptanceCriteria: [],
-      }),
-    }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.id ?? null;
-}
+// ─── Task runner via Claude Code CLI ─────────────────────────────────────────
 
-// ─── Claude tools ─────────────────────────────────────────────────────────────
-
-const TOOLS: Anthropic.Tool[] = [
-  {
-    name: "read_file",
-    description: "Read a file from the repository",
-    input_schema: {
-      type: "object" as const,
-      properties: { path: { type: "string", description: "Relative path from repo root" } },
-      required: ["path"],
-    },
-  },
-  {
-    name: "write_file",
-    description: "Write content to a file (creates or overwrites)",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        path: { type: "string", description: "Relative path from repo root" },
-        content: { type: "string", description: "Full file content" },
-      },
-      required: ["path", "content"],
-    },
-  },
-  {
-    name: "bash",
-    description: "Run a shell command in the repository root",
-    input_schema: {
-      type: "object" as const,
-      properties: { command: { type: "string", description: "Shell command to run" } },
-      required: ["command"],
-    },
-  },
-  {
-    name: "list_files",
-    description: "List files in a directory",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        dir: { type: "string", description: "Directory path relative to repo root, default '.'" },
-      },
-      required: [],
-    },
-  },
-  {
-    name: "task_complete",
-    description: "Mark the task as done. Optionally create a Traceback changelog entry.",
-    input_schema: {
-      type: "object" as const,
-      properties: {
-        summary: { type: "string", description: "What was accomplished" },
-        createEntry: {
-          type: "object",
-          description: "If provided, creates a Traceback changelog entry",
-          properties: {
-            title: { type: "string" },
-            type: { type: "string", enum: ["FEATURE", "BUGFIX", "TASK", "EPIC"] },
-            summary: { type: "string" },
-          },
-          required: ["title", "type", "summary"],
-        },
-      },
-      required: ["summary"],
-    },
-  },
-];
-
-// ─── Tool executor ────────────────────────────────────────────────────────────
-
-function executeTool(
-  name: string,
-  input: Record<string, unknown>
-): { result: string; featureId?: string } {
-  try {
-    if (name === "read_file") {
-      const filePath = path.join(REPO_DIR, input.path as string);
-      const content = fs.readFileSync(filePath, "utf-8");
-      return { result: content.slice(0, 8000) }; // limit output
-    }
-
-    if (name === "write_file") {
-      const filePath = path.join(REPO_DIR, input.path as string);
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFileSync(filePath, input.content as string, "utf-8");
-      return { result: `Written: ${input.path}` };
-    }
-
-    if (name === "bash") {
-      const output = execSync(input.command as string, {
-        cwd: REPO_DIR,
-        timeout: 60_000,
-        encoding: "utf-8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      return { result: output.slice(0, 4000) };
-    }
-
-    if (name === "list_files") {
-      const dir = path.join(REPO_DIR, (input.dir as string) ?? ".");
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const result = entries
-        .map((e) => (e.isDirectory() ? `${e.name}/` : e.name))
-        .join("\n");
-      return { result };
-    }
-
-    return { result: "Unknown tool" };
-  } catch (e: unknown) {
-    return { result: `Error: ${e instanceof Error ? e.message : String(e)}` };
-  }
-}
-
-// ─── Task runner ──────────────────────────────────────────────────────────────
-
-async function runTask(taskId: string, prompt: string) {
+async function runTask(taskId: string, prompt: string): Promise<void> {
   console.log(`Running task ${taskId}: ${prompt.slice(0, 60)}...`);
 
-  const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: prompt },
-  ];
+  return new Promise((resolve, reject) => {
+    const systemPrompt = `You are a coding agent working in the repository at ${REPO_DIR}. Complete the user's task. When done, output a final line: TASK_COMPLETE: <one-line summary of what you did>`;
 
-  let featureId: string | undefined;
-  let done = false;
-
-  while (!done) {
-    const stream = anthropic.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8096,
-      tools: TOOLS,
-      messages,
-      system: `You are a coding agent working in the repository at ${REPO_DIR}.
-Complete the user's task using the available tools.
-When you are finished, call task_complete with a summary of what you did.
-If the task involved creating a feature or fixing a bug, also provide createEntry.`,
-    });
-
-    // Stream text chunks to the browser as they arrive
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        await pushChunk(taskId, event.delta.text, "text");
+    const proc = spawn(
+      "claude",
+      [
+        "-p",
+        `${systemPrompt}\n\nTask: ${prompt}`,
+        "--output-format",
+        "stream-json",
+        "--allowedTools",
+        "Bash,Read,Write,Edit,Glob,Grep,LS",
+        "--no-auto-create-claude-md",
+      ],
+      {
+        cwd: REPO_DIR,
+        env: { ...process.env },
       }
-    }
-
-    const response = await stream.finalMessage();
-
-    // Add full assistant turn to history BEFORE processing tool calls
-    messages.push({ role: "assistant", content: response.content });
-
-    // Now process tool use blocks
-    const toolUseBlocks = response.content.filter(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
     );
 
-    if (toolUseBlocks.length === 0) {
-      // No tool calls — model is done (shouldn't happen without task_complete, but handle gracefully)
-      done = true;
-      break;
-    }
+    let buffer = "";
+    let summaryLine = "";
 
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    proc.stdout.on("data", async (chunk: Buffer) => {
+      buffer += chunk.toString();
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
-    for (const toolBlock of toolUseBlocks) {
-      const toolInput = toolBlock.input as Record<string, unknown>;
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          await handleStreamEvent(taskId, event);
 
-      if (toolBlock.name === "task_complete") {
-        const inp = toolInput as {
-          summary: string;
-          createEntry?: { title: string; type: string; summary: string };
-        };
-
-        if (inp.createEntry) {
-          featureId =
-            (await createFeature(
-              inp.createEntry.title,
-              inp.createEntry.type,
-              inp.createEntry.summary
-            )) ?? undefined;
+          // Capture summary from assistant text
+          if (event.type === "assistant" && event.message?.content) {
+            for (const block of event.message.content) {
+              if (block.type === "text" && block.text?.includes("TASK_COMPLETE:")) {
+                const match = block.text.match(/TASK_COMPLETE:\s*(.+)/);
+                if (match) summaryLine = match[1].trim();
+              }
+            }
+          }
+        } catch {
+          // not JSON — plain text output
+          if (line.trim()) {
+            await pushChunk(taskId, line, "text");
+          }
         }
-
-        await pushChunk(taskId, `✓ ${inp.summary}`, "done", true, false, featureId);
-        done = true;
-        break;
       }
+    });
 
-      await pushChunk(
-        taskId,
-        `▶ ${toolBlock.name}(${JSON.stringify(toolInput).slice(0, 100)})`,
-        "tool_use"
-      );
-      const { result } = executeTool(toolBlock.name, toolInput);
-      await pushChunk(taskId, result.slice(0, 500), "tool_result");
+    proc.stderr.on("data", (chunk: Buffer) => {
+      const text = chunk.toString().trim();
+      if (text) console.error("[agent stderr]", text);
+    });
 
-      toolResults.push({
-        type: "tool_result",
-        tool_use_id: toolBlock.id,
-        content: result,
-      });
-    }
+    proc.on("close", async (code) => {
+      const summary = summaryLine || "Task completed";
+      if (code === 0) {
+        await pushChunk(taskId, `✓ ${summary}`, "done", true, false, undefined);
+        resolve();
+      } else {
+        await pushChunk(taskId, `Process exited with code ${code}`, "text", false, true);
+        reject(new Error(`claude exited with code ${code}`));
+      }
+    });
 
-    if (!done && toolResults.length > 0) {
-      messages.push({ role: "user", content: toolResults });
+    proc.on("error", async (err) => {
+      const msg = err.message.includes("ENOENT")
+        ? "claude CLI not found. Make sure Claude Code is installed: https://claude.ai/code"
+        : err.message;
+      await pushChunk(taskId, `Error: ${msg}`, "text", false, true);
+      reject(err);
+    });
+  });
+}
+
+// ─── Stream event handler ─────────────────────────────────────────────────────
+
+async function handleStreamEvent(taskId: string, event: Record<string, unknown>) {
+  // stream-json format from claude CLI
+  if (event.type === "assistant") {
+    const msg = event.message as { content?: Array<{ type: string; text?: string; name?: string; input?: unknown }> };
+    if (!msg?.content) return;
+
+    for (const block of msg.content) {
+      if (block.type === "text" && block.text) {
+        // Skip the TASK_COMPLETE line — shown as the done message
+        const text = block.text.replace(/TASK_COMPLETE:.*$/m, "").trim();
+        if (text) await pushChunk(taskId, text, "text");
+      }
+      if (block.type === "tool_use") {
+        const input = JSON.stringify(block.input ?? {}).slice(0, 100);
+        await pushChunk(taskId, `▶ ${block.name}(${input})`, "tool_use");
+      }
     }
   }
 
-  console.log(`Task ${taskId} complete`);
+  if (event.type === "tool_result") {
+    const result = event.result as { content?: Array<{ type: string; text?: string }> };
+    const text = result?.content?.find((c) => c.type === "text")?.text ?? "";
+    if (text) await pushChunk(taskId, text.slice(0, 500), "tool_result");
+  }
 }
 
 // ─── Main loop ────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log(`Traceback agent started`);
+  console.log("Traceback agent started (Claude Code CLI)");
   console.log(`   Project: ${PROJECT_ID}`);
   console.log(`   Repo: ${REPO_DIR}`);
   console.log(`   Server: ${BASE_URL}`);
@@ -329,7 +200,6 @@ async function main() {
       await runTask(task.id, task.prompt);
     } catch (e) {
       console.error(`Task ${task.id} failed:`, e);
-      await pushChunk(task.id, `Error: ${e instanceof Error ? e.message : String(e)}`, "text", false, true);
     } finally {
       busy = false;
     }
