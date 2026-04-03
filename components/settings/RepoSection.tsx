@@ -1,7 +1,7 @@
 "use client";
 // components/settings/RepoSection.tsx — GitHub Repository Info + Webhook-Status
 
-import { Copy, ExternalLink } from "lucide-react";
+import { Copy, ExternalLink, GitBranch } from "lucide-react";
 
 interface RepoSectionProps {
   repoOwner: string;
@@ -63,9 +63,7 @@ export function RepoSection({
             </a>
             <div className="flex items-center gap-3 mt-0.5">
               <span className="text-xs text-gray-500 dark:text-slate-400 flex items-center gap-1">
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 3v12m0 0l3-3m-3 3l-3-3m12 0V3m0 0l3 3m-3-3l-3 3" />
-                </svg>
+                <GitBranch className="w-3 h-3" />
                 {defaultBranch}
               </span>
               <span className="text-xs text-gray-500 dark:text-slate-400">

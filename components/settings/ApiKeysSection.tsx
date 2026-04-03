@@ -3,7 +3,7 @@
 // Verwaltet API-Keys: Anzeige, Erstellen (mit Key-Reveal-Modal), Löschen.
 
 import { useState, useRef } from "react";
-import { Trash2, Copy } from "lucide-react";
+import { Trash2, Copy, X, AlertTriangle, Check, Plus, Loader2 } from "lucide-react";
 
 // ─── Typen ────────────────────────────────────────────────────────────────────
 
@@ -115,19 +115,7 @@ function CreateModal({ projectId, onCreated, onClose }: CreateModalProps) {
               className="p-1 rounded-md text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Schließen"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
@@ -229,37 +217,13 @@ function RevealModal({ rawKey, onClose }: RevealModalProps) {
               className="p-1 rounded-md text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Schließen"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
 
           <div className="px-5 py-5 space-y-4">
             <p className="text-xs text-amber-400 flex items-center gap-1.5">
-              <svg
-                className="w-3.5 h-3.5 shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"
-                />
-              </svg>
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               Kopiere diesen Key jetzt. Er wird nicht erneut angezeigt.
             </p>
 
@@ -280,19 +244,7 @@ function RevealModal({ rawKey, onClose }: RevealModalProps) {
               >
                 {copied ? (
                   <>
-                    <svg
-                      className="w-3.5 h-3.5 text-emerald-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4.5 12.75l6 6 9-13.5"
-                      />
-                    </svg>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
                     Kopiert
                   </>
                 ) : (
@@ -367,19 +319,7 @@ export function ApiKeysSection({
             transition-colors shrink-0
           "
         >
-          <svg
-            className="w-3.5 h-3.5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
+          <Plus className="w-3.5 h-3.5" />
           Neuen Key erstellen
         </button>
       </div>
@@ -437,25 +377,7 @@ export function ApiKeysSection({
                       aria-label={`${key.label} löschen`}
                     >
                       {deletingId === key.id ? (
-                        <svg
-                          className="w-3.5 h-3.5 animate-spin"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          />
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                          />
-                        </svg>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Trash2 className="w-3.5 h-3.5" />
                       )}
