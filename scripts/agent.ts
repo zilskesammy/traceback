@@ -43,7 +43,9 @@ async function pollTask() {
     `${BASE_URL}/api/agent-tunnel/poll?projectId=${PROJECT_ID}`,
     { headers }
   );
-  const data = await res.json();
+  const text = await res.text();
+  if (!text.trim()) return null;
+  const data = JSON.parse(text);
   return data.task as { id: string; prompt: string } | null;
 }
 
@@ -88,7 +90,6 @@ async function runTask(taskId: string, prompt: string): Promise<void> {
         "--verbose",
         "--allowedTools",
         "Bash,Read,Write,Edit,Glob,Grep,LS",
-        "--no-auto-create-claude-md",
       ],
       {
         cwd: REPO_DIR,
