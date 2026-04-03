@@ -82,6 +82,8 @@ model Project {
   webhookSecret        String
   defaultBranch        String  @default("main")
   changelogBranch      String?
+  agentLastSeenAt      DateTime?
+  agentTasks           AgentTask[]
 
   members           ProjectMember[]
   invitations       ProjectInvitation[]
@@ -369,4 +371,33 @@ model CodeChange {
 
   @@index([entryId])
   @@index([file])
+}
+
+// ─── AGENT TASKS ─────────────────────────────────────────────────────────────
+
+model AgentTask {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  prompt      String   @db.Text
+  status      String   @default("pending")
+  featureId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  chunks AgentTaskChunk[]
+
+  @@index([projectId, status])
+}
+
+model AgentTaskChunk {
+  id        String    @id @default(cuid())
+  taskId    String
+  task      AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  content   String    @db.Text
+  chunkType String
+  createdAt DateTime  @default(now())
+
+  @@index([taskId, createdAt])
 }
