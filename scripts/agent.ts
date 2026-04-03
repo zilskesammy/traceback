@@ -85,6 +85,7 @@ async function runTask(taskId: string, prompt: string): Promise<void> {
         `${systemPrompt}\n\nTask: ${prompt}`,
         "--output-format",
         "stream-json",
+        "--verbose",
         "--allowedTools",
         "Bash,Read,Write,Edit,Glob,Grep,LS",
         "--no-auto-create-claude-md",
